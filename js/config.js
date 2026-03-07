@@ -134,7 +134,7 @@ function formatCurrency(value) {
 function formatDate(date) {
     if (!date) return 'N/A';
     const d = new Date(date);
-    return isNaN(d) ? 'N/A' : new Intl.DateTimeFormat('pt-BR', { year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+    return isNaN(d) ? 'N/A' : new Intl.DateTimeFormat('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
 
 // DateTime
@@ -142,15 +142,15 @@ function formatDateTime(date) {
     if (!date) return 'N/A';
     const d = new Date(date);
     return isNaN(d) ? 'N/A' : new Intl.DateTimeFormat('pt-BR', {
-        year:'numeric', month:'2-digit', day:'2-digit',
-        hour:'2-digit', minute:'2-digit', second:'2-digit'
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
     }).format(d);
 }
 
 // Generate unique OS number
 function generateOSNumber() {
     const ts = Date.now();
-    const random = String(Math.floor(Math.random()*1000000)).padStart(6,'0');
+    const random = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
     return `OS-${ts}-${random}`;
 }
 
@@ -163,24 +163,24 @@ function validateEmail(email) {
 // Validate phone
 function validatePhone(phone) {
     const re = /^[\d\s\-\(\)]+$/;
-    return re.test(phone) && phone.replace(/\D/g,'').length >= 10;
+    return re.test(phone) && phone.replace(/\D/g, '').length >= 10;
 }
 
 // Validate CPF (formato + dígitos verificadores)
 function validateCPF(cpf) {
-    cpf = (cpf || '').replace(/\D/g,'');
-    if(!cpf || cpf.length!==11 || /^(\d)\1{10}$/.test(cpf)) return false;
+    cpf = (cpf || '').replace(/\D/g, '');
+    if (!cpf || cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
     let sum, rest;
     sum = 0;
-    for(let i=1;i<=9;i++) sum += parseInt(cpf.substring(i-1,i)) * (11-i);
-    rest = (sum*10)%11;
-    if(rest===10||rest===11) rest=0;
-    if(rest!==parseInt(cpf.substring(9,10))) return false;
+    for (let i = 1; i <= 9; i++) sum += parseInt(cpf.substring(i - 1, i)) * (11 - i);
+    rest = (sum * 10) % 11;
+    if (rest === 10 || rest === 11) rest = 0;
+    if (rest !== parseInt(cpf.substring(9, 10))) return false;
     sum = 0;
-    for(let i=1;i<=10;i++) sum += parseInt(cpf.substring(i-1,i)) * (12-i);
-    rest = (sum*10)%11;
-    if(rest===10||rest===11) rest=0;
-    if(rest!==parseInt(cpf.substring(10,11))) return false;
+    for (let i = 1; i <= 10; i++) sum += parseInt(cpf.substring(i - 1, i)) * (12 - i);
+    rest = (sum * 10) % 11;
+    if (rest === 10 || rest === 11) rest = 0;
+    if (rest !== parseInt(cpf.substring(10, 11))) return false;
     return true;
 }
 
@@ -188,13 +188,24 @@ function validateCPF(cpf) {
 // LOGGER
 // =====================
 const Logger = {
-    log: (msg, data=null) => { if(APP_CONFIG.LOG_ENABLED) console.log(`[${new Date().toISOString()}] ${msg}`, data || ''); },
-    error: (msg, err=null) => { console.error(`[ERROR] ${msg}`, err || ''); },
-    warn: (msg, data=null) => { console.warn(`[WARN] ${msg}`, data || ''); },
-    debug: (msg, data=null) => { if(APP_CONFIG.DEBUG_MODE) console.debug(`[DEBUG] ${msg}`, data || ''); },
+    log: (msg, data = null) => { if (APP_CONFIG.LOG_ENABLED) console.log(`[${new Date().toISOString()}] ${msg}`, data || ''); },
+    error: (msg, err = null) => { console.error(`[ERROR] ${msg}`, err || ''); },
+    warn: (msg, data = null) => { console.warn(`[WARN] ${msg}`, data || ''); },
+    debug: (msg, data = null) => { if (APP_CONFIG.DEBUG_MODE) console.debug(`[DEBUG] ${msg}`, data || ''); },
 };
+// =====================
+// SUPABASE CLIENT INIT
+// =====================
 
-// =====================
-// EXPORT (ES6 Modules - opcional)
-// =====================
-// export { SUPABASE_CONFIG, CLOUDINARY_CONFIG, API_CONFIG, APP_CONFIG, IMAGE_CONFIG, STATUS_CONFIG, Logger, getStatusLabel, getStatusColor, getImageTypeLabel, formatCurrency, formatDate, formatDateTime, generateOSNumber, validateEmail, validatePhone, validateCPF };
+// Verifica se biblioteca Supabase foi carregada
+if (!window.supabase || !window.supabase.createClient) {
+    throw new Error('Biblioteca Supabase não carregada. Verifique o script CDN.');
+}
+
+// Cria cliente Supabase global
+window.supabaseClient = window.supabase.createClient(
+    SUPABASE_CONFIG.URL,
+    SUPABASE_CONFIG.ANON_KEY
+);
+
+console.log('Supabase client inicializado.');

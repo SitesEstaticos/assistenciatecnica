@@ -28,7 +28,9 @@ const ASSETS_TO_CACHE = [
     '/js/app.js',
 ];
 
-// Install event
+// ============================
+// INSTALL
+// ============================
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -39,74 +41,88 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// Activate event
+// ============================
+// ACTIVATE
+// ============================
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
+        caches.keys().then((cacheNames) =>
+            Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME) {
                         console.log('Service Worker: Deleting old cache', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
-            );
-        })
+            )
+        )
     );
     self.clients.claim();
 });
 
-// Fetch event
+// ============================
+// FETCH
+// ============================
 self.addEventListener('fetch', (event) => {
     const { request } = event;
 
-    // Skip non-GET requests
-    if (request.method !== 'GET') {
-        return;
-    }
+    // Only handle GET requests
+    if (request.method !== 'GET') return;
 
-    // Skip external requests
-    if (!request.url.includes(self.location.origin)) {
-        return;
-    }
+    // Ignore external requests (CDNs, APIs)
+    if (!request.url.startsWith(self.location.origin)) return;
 
-    // Cache first strategy for assets
-    if (request.url.includes('/css/') || request.url.includes('/js/') || request.url.includes('/images/')) {
+    // Cache-first for CSS, JS, images
+    if (
+        request.url.includes('/css/') ||
+        request.url.includes('/js/') ||
+        request.url.includes('/images/')
+    ) {
         event.respondWith(
-            caches.match(request).then((response) => {
-                return response || fetch(request);
+            caches.match(request).then((cachedResponse) => {
+                return cachedResponse || fetch(request).then((networkResponse) => {
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, networkResponse.clone());
+                    });
+                    return networkResponse;
+                });
             })
         );
         return;
     }
 
-    // Network first strategy for HTML pages
-    event.respondWith(
-        fetch(request)
-            .then((response) => {
-                // Cache successful responses
-                if (response && response.status === 200) {
-                    const responseClone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, responseClone);
-                    });
-                }
-                return response;
-            })
-            .catch(() => {
-                // Fall back to cache if network fails
-                return caches.match(request).then((response) => {
-                    return response || new Response('Offline - Page not cached', { status: 503 });
-                });
-            })
-    );
+    // Network-first for HTML pages
+    if (request.headers.get('accept')?.includes('text/html')) {
+        event.respondWith(
+            fetch(request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(request, networkResponse.clone());
+                        });
+                    }
+                    return networkResponse;
+                })
+                .catch(() =>
+                    caches.match(request).then((cachedResponse) => {
+                        return cachedResponse || caches.match('/index.html');
+                    })
+                )
+        );
+        return;
+    }
+
+    // Default fetch
+    event.respondWith(fetch(request));
 });
 
-// Handle messages from clients
+// ============================
+// MESSAGES
+// ============================
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
 });
 
-console.log('Service Worker loaded');
+console.log('Service Worker loaded and ready');

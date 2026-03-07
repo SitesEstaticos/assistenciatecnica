@@ -32,10 +32,11 @@ const ASSETS_TO_CACHE = [
 // INSTALL
 // ============================
 self.addEventListener('install', (event) => {
+    const LOCAL_ASSETS = ASSETS_TO_CACHE.filter(url => url.startsWith('/')); // apenas arquivos locais
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('Service Worker: Caching assets');
-            return cache.addAll(ASSETS_TO_CACHE);
+            console.log('Service Worker: Caching local assets');
+            return cache.addAll(LOCAL_ASSETS);
         })
     );
     self.skipWaiting();

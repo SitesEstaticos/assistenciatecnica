@@ -192,10 +192,8 @@ body {
    ============================================ */
 
 .app-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
+    display: flex;
     min-height: 100vh;
-    background-color: var(--light-bg);
 }
 
 /* ============================================
@@ -301,10 +299,12 @@ body {
    ============================================ */
 
 .main-content {
-    margin-left: 250px;
+    flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    padding: 1rem 2rem;
+    margin-left: 250px;
 }
 
 .top-bar {
@@ -1139,6 +1139,7 @@ body {
    ============================================ */
 
 @media print {
+
     .sidebar,
     .top-bar,
     .btn,

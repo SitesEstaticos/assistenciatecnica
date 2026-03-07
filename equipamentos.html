@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1e3a8a">
+    <title>Equipamentos - Assistência Técnica</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-small">AT</div>
+                <h2>Assistência</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item" data-page="dashboard">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="clientes.html" class="nav-item" data-page="clientes">
+                    <span class="icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="equipamentos.html" class="nav-item active" data-page="equipamentos">
+                    <span class="icon">💻</span>
+                    <span>Equipamentos</span>
+                </a>
+                <a href="ordens-servico.html" class="nav-item" data-page="ordens">
+                    <span class="icon">📋</span>
+                    <span>Ordens de Serviço</span>
+                </a>
+                <a href="estoque.html" class="nav-item" data-page="estoque">
+                    <span class="icon">📦</span>
+                    <span>Estoque</span>
+                </a>
+                <a href="relatorios.html" class="nav-item" data-page="relatorios">
+                    <span class="icon">📈</span>
+                    <span>Relatórios</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn btn-logout">
+                    <span class="icon">🚪</span>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <h1>Equipamentos</h1>
+                </div>
+                <div class="top-bar-right">
+                    <button id="newEquipmentBtn" class="btn btn-primary">
+                        <span>+ Novo Equipamento</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Search and Filter -->
+                <div class="search-bar">
+                    <input 
+                        type="text" 
+                        id="searchEquipments" 
+                        placeholder="Buscar por cliente, marca ou modelo..." 
+                        class="search-input"
+                    >
+                </div>
+
+                <!-- Equipments Table -->
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
+                                <th>Número de Série</th>
+                                <th>Estado</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="equipmentsTable">
+                            <tr>
+                                <td colspan="6" class="text-center">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: New/Edit Equipment -->
+    <div id="equipmentModal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="modalTitle">Novo Equipamento</h2>
+                <button class="btn-close" id="closeEquipmentModal">&times;</button>
+            </div>
+
+            <form id="equipmentForm" class="form-grid">
+                <input type="hidden" id="equipmentId">
+
+                <div class="form-group">
+                    <label for="equipmentClient">Cliente *</label>
+                    <select id="equipmentClient" name="client_id" required>
+                        <option value="">Selecione um cliente</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentBrand">Marca *</label>
+                    <input 
+                        type="text" 
+                        id="equipmentBrand" 
+                        name="brand" 
+                        placeholder="Ex: Dell, HP, Lenovo" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentModel">Modelo *</label>
+                    <input 
+                        type="text" 
+                        id="equipmentModel" 
+                        name="model" 
+                        placeholder="Ex: Inspiron 15, Pavilion G6" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentSerial">Número de Série *</label>
+                    <input 
+                        type="text" 
+                        id="equipmentSerial" 
+                        name="serial_number" 
+                        placeholder="Número único do equipamento" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentAccessories">Acessórios Entregues</label>
+                    <input 
+                        type="text" 
+                        id="equipmentAccessories" 
+                        name="accessories" 
+                        placeholder="Ex: Carregador, Mouse, Mochila"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentCondition">Estado Físico</label>
+                    <select id="equipmentCondition" name="physical_condition">
+                        <option value="">Selecione</option>
+                        <option value="novo">Novo</option>
+                        <option value="bom">Bom</option>
+                        <option value="regular">Regular</option>
+                        <option value="danificado">Danificado</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentPassword">Senha do Equipamento</label>
+                    <input 
+                        type="password" 
+                        id="equipmentPassword" 
+                        name="password" 
+                        placeholder="Senha BIOS/Windows/Admin"
+                    >
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="equipmentNotes">Observações</label>
+                    <textarea 
+                        id="equipmentNotes" 
+                        name="notes" 
+                        placeholder="Observações adicionais sobre o equipamento"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="equipmentImages">Imagens do Equipamento</label>
+                    <div class="image-upload-area">
+                        <input 
+                            type="file" 
+                            id="equipmentImages" 
+                            name="images" 
+                            multiple 
+                            accept="image/*"
+                            class="hidden"
+                        >
+                        <button type="button" class="btn btn-secondary" id="uploadImagesBtn">
+                            📷 Selecionar Imagens
+                        </button>
+                        <div id="imagePreview" class="image-preview-grid"></div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelEquipmentBtn">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Equipamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Equipment Details -->
+    <div id="equipmentDetailsModal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="detailsTitle">Detalhes do Equipamento</h2>
+                <button class="btn-close" id="closeDetailsModal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <label>Cliente</label>
+                        <p id="detailClient"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Marca</label>
+                        <p id="detailBrand"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Modelo</label>
+                        <p id="detailModel"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Número de Série</label>
+                        <p id="detailSerial"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Acessórios</label>
+                        <p id="detailAccessories"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Estado Físico</label>
+                        <p id="detailCondition"></p>
+                    </div>
+                    <div class="detail-item full-width">
+                        <label>Observações</label>
+                        <p id="detailNotes"></p>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h3>Galeria de Imagens</h3>
+                <div id="equipmentGallery" class="image-gallery-grid"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="closeDetailsBtn">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="editEquipmentBtn">Editar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/cloudinary.js"></script>
+    <script src="js/equipamentos.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

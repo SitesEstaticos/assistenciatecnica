@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1e3a8a">
+    <title>Estoque - Assistência Técnica</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-small">AT</div>
+                <h2>Assistência</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item" data-page="dashboard">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="clientes.html" class="nav-item" data-page="clientes">
+                    <span class="icon">👥</span>
+                    <span>Clientes</span>
+                </a>
+                <a href="equipamentos.html" class="nav-item" data-page="equipamentos">
+                    <span class="icon">💻</span>
+                    <span>Equipamentos</span>
+                </a>
+                <a href="ordens-servico.html" class="nav-item" data-page="ordens">
+                    <span class="icon">📋</span>
+                    <span>Ordens de Serviço</span>
+                </a>
+                <a href="estoque.html" class="nav-item active" data-page="estoque">
+                    <span class="icon">📦</span>
+                    <span>Estoque</span>
+                </a>
+                <a href="relatorios.html" class="nav-item" data-page="relatorios">
+                    <span class="icon">📈</span>
+                    <span>Relatórios</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn btn-logout">
+                    <span class="icon">🚪</span>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <h1>Estoque de Peças</h1>
+                </div>
+                <div class="top-bar-right">
+                    <button id="newPartBtn" class="btn btn-primary">
+                        <span>+ Nova Peça</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Search and Filter -->
+                <div class="search-bar">
+                    <input 
+                        type="text" 
+                        id="searchParts" 
+                        placeholder="Buscar por nome ou código..." 
+                        class="search-input"
+                    >
+                </div>
+
+                <!-- Stock Summary -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #dbeafe;">
+                            <span>📦</span>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total de Peças</h3>
+                            <p class="stat-number" id="totalParts">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #fef3c7;">
+                            <span>⚠️</span>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Estoque Baixo</h3>
+                            <p class="stat-number" id="lowStock">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #dcfce7;">
+                            <span>💰</span>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Valor Total</h3>
+                            <p class="stat-number" id="totalValue">R$ 0,00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parts Table -->
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome da Peça</th>
+                                <th>Código</th>
+                                <th>Quantidade</th>
+                                <th>Valor Compra</th>
+                                <th>Valor Venda</th>
+                                <th>Total em Estoque</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partsTable">
+                            <tr>
+                                <td colspan="7" class="text-center">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: New/Edit Part -->
+    <div id="partModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nova Peça</h2>
+                <button class="btn-close" id="closePartModal">&times;</button>
+            </div>
+
+            <form id="partForm" class="form-grid">
+                <input type="hidden" id="partId">
+
+                <div class="form-group">
+                    <label for="partName">Nome da Peça *</label>
+                    <input 
+                        type="text" 
+                        id="partName" 
+                        name="name" 
+                        placeholder="Ex: Bateria, SSD, RAM" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="partCode">Código/SKU</label>
+                    <input 
+                        type="text" 
+                        id="partCode" 
+                        name="code" 
+                        placeholder="Código único da peça"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="partQuantity">Quantidade em Estoque *</label>
+                    <input 
+                        type="number" 
+                        id="partQuantity" 
+                        name="quantity" 
+                        placeholder="0" 
+                        min="0"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="partMinQuantity">Quantidade Mínima</label>
+                    <input 
+                        type="number" 
+                        id="partMinQuantity" 
+                        name="min_quantity" 
+                        placeholder="0" 
+                        min="0"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="partCostPrice">Valor de Compra (R$) *</label>
+                    <input 
+                        type="number" 
+                        id="partCostPrice" 
+                        name="cost_price" 
+                        placeholder="0.00" 
+                        step="0.01"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="partSalePrice">Valor de Venda (R$) *</label>
+                    <input 
+                        type="number" 
+                        id="partSalePrice" 
+                        name="sale_price" 
+                        placeholder="0.00" 
+                        step="0.01"
+                        required
+                    >
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="partDescription">Descrição</label>
+                    <textarea 
+                        id="partDescription" 
+                        name="description" 
+                        placeholder="Descrição detalhada da peça"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelPartBtn">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Peça</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Part Details -->
+    <div id="partDetailsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detailsTitle">Detalhes da Peça</h2>
+                <button class="btn-close" id="closeDetailsModal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <label>Nome</label>
+                        <p id="detailName"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Código/SKU</label>
+                        <p id="detailCode"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Quantidade em Estoque</label>
+                        <p id="detailQuantity"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Quantidade Mínima</label>
+                        <p id="detailMinQuantity"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Valor de Compra</label>
+                        <p id="detailCostPrice"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Valor de Venda</label>
+                        <p id="detailSalePrice"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Margem de Lucro</label>
+                        <p id="detailMargin"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Valor Total em Estoque</label>
+                        <p id="detailTotalValue"></p>
+                    </div>
+                    <div class="detail-item full-width">
+                        <label>Descrição</label>
+                        <p id="detailDescription"></p>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="closeDetailsBtn">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="editPartBtn">Editar</button>
+                    <button type="button" class="btn btn-danger" id="deletePartBtn">Deletar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/estoque.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

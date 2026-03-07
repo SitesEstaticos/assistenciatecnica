@@ -1,168 +1,103 @@
 // ============================================
-// DATABASE MODULE - COMPLETE
+// DATABASE MODULE - SUPABASE ONLY
 // ============================================
 
 class DatabaseManager {
     constructor(supabaseClient) {
-        this.supabase = supabaseClient; // opcional, caso queira enviar para Supabase
-        this.storagePrefix = 'assistencia_tecnica_';
-        this.initLocalStorage();
-    }
-
-    initLocalStorage() {
-        const tables = ['clientes','equipamentos','ordens_servico','pecas','estoque','imagens_equipamento','historico_ordem_servico'];
-        tables.forEach((key) => {
-            if (!this.getAll(key)) this.setAll(key, []);
-        });
-    }
-
-    setAll(key, data) {
-        try {
-            localStorage.setItem(this.storagePrefix + key, JSON.stringify(data));
-            console.log(`Data stored: ${key}`);
-        } catch (error) {
-            console.error(`Error storing data: ${key}`, error);
-        }
-    }
-
-    getAll(key) {
-        try {
-            const data = localStorage.getItem(this.storagePrefix + key);
-            return data ? JSON.parse(data) : null;
-        } catch (error) {
-            console.error(`Error retrieving data: ${key}`, error);
-            return null;
-        }
+        if (!supabaseClient) throw new Error('Supabase client is required');
+        this.supabase = supabaseClient;
     }
 
     // ============================================
     // CLIENTES
     // ============================================
     async createCliente(cliente) {
-        const clientes = this.getAll('clientes') || [];
         const newCliente = {
             id: 'cliente_' + Date.now(),
             ...cliente,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         };
-        clientes.push(newCliente);
-        this.setAll('clientes', clientes);
-        console.log('Cliente created:', newCliente.id);
-
-        // Supabase insert (opcional)
-        if (this.supabase) {
-            await this.supabase.from('clientes').insert([newCliente]);
-        }
-
-        return newCliente;
+        const { data, error } = await this.supabase.from('clientes').insert([newCliente]);
+        if (error) throw error;
+        return data[0];
     }
 
     async getClientes() {
-        return this.getAll('clientes') || [];
+        const { data, error } = await this.supabase.from('clientes').select('*');
+        if (error) throw error;
+        return data;
     }
 
     async getClienteById(id) {
-        const clientes = this.getAll('clientes') || [];
-        return clientes.find(c => c.id === id);
+        const { data, error } = await this.supabase.from('clientes').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
     }
 
     async updateCliente(id, updates) {
-        const clientes = this.getAll('clientes') || [];
-        const index = clientes.findIndex(c => c.id === id);
-        if (index !== -1) {
-            clientes[index] = { ...clientes[index], ...updates, updated_at: new Date().toISOString() };
-            this.setAll('clientes', clientes);
-
-            if (this.supabase) {
-                await this.supabase.from('clientes').update(updates).eq('id', id);
-            }
-
-            return clientes[index];
-        }
-        throw new Error('Cliente not found');
+        updates.updated_at = new Date().toISOString();
+        const { data, error } = await this.supabase.from('clientes').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     async deleteCliente(id) {
-        let clientes = this.getAll('clientes') || [];
-        clientes = clientes.filter(c => c.id !== id);
-        this.setAll('clientes', clientes);
-
-        if (this.supabase) {
-            await this.supabase.from('clientes').delete().eq('id', id);
-        }
-
-        return true;
+        const { data, error } = await this.supabase.from('clientes').delete().eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     // ============================================
     // EQUIPAMENTOS
     // ============================================
     async createEquipamento(equipamento) {
-        const equipamentos = this.getAll('equipamentos') || [];
         const newEquip = {
             id: 'equip_' + Date.now(),
             ...equipamento,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         };
-        equipamentos.push(newEquip);
-        this.setAll('equipamentos', equipamentos);
-
-        if (this.supabase) {
-            await this.supabase.from('equipamentos').insert([newEquip]);
-        }
-
-        return newEquip;
+        const { data, error } = await this.supabase.from('equipamentos').insert([newEquip]);
+        if (error) throw error;
+        return data[0];
     }
 
     async getEquipamentos() {
-        return this.getAll('equipamentos') || [];
+        const { data, error } = await this.supabase.from('equipamentos').select('*');
+        if (error) throw error;
+        return data;
     }
 
     async getEquipamentoById(id) {
-        const equipamentos = this.getAll('equipamentos') || [];
-        return equipamentos.find(e => e.id === id);
+        const { data, error } = await this.supabase.from('equipamentos').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
     }
 
     async getEquipamentosByCliente(clienteId) {
-        const equipamentos = this.getAll('equipamentos') || [];
-        return equipamentos.filter(e => e.client_id === clienteId);
+        const { data, error } = await this.supabase.from('equipamentos').select('*').eq('client_id', clienteId);
+        if (error) throw error;
+        return data;
     }
 
     async updateEquipamento(id, updates) {
-        const equipamentos = this.getAll('equipamentos') || [];
-        const index = equipamentos.findIndex(e => e.id === id);
-        if (index !== -1) {
-            equipamentos[index] = { ...equipamentos[index], ...updates, updated_at: new Date().toISOString() };
-            this.setAll('equipamentos', equipamentos);
-
-            if (this.supabase) {
-                await this.supabase.from('equipamentos').update(updates).eq('id', id);
-            }
-
-            return equipamentos[index];
-        }
-        throw new Error('Equipamento not found');
+        updates.updated_at = new Date().toISOString();
+        const { data, error } = await this.supabase.from('equipamentos').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     async deleteEquipamento(id) {
-        let equipamentos = this.getAll('equipamentos') || [];
-        equipamentos = equipamentos.filter(e => e.id !== id);
-        this.setAll('equipamentos', equipamentos);
-
-        if (this.supabase) {
-            await this.supabase.from('equipamentos').delete().eq('id', id);
-        }
-
-        return true;
+        const { data, error } = await this.supabase.from('equipamentos').delete().eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     // ============================================
     // ORDENS DE SERVIÇO
     // ============================================
     async createOrdenServico(ordem) {
-        const ordens = this.getAll('ordens_servico') || [];
         const newOrdem = {
             id: 'os_' + Date.now(),
             os_number: 'OS-' + Date.now(),
@@ -170,194 +105,150 @@ class DatabaseManager {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         };
-        ordens.push(newOrdem);
-        this.setAll('ordens_servico', ordens);
-
-        if (this.supabase) {
-            await this.supabase.from('ordens_servico').insert([newOrdem]);
-        }
-
-        return newOrdem;
+        const { data, error } = await this.supabase.from('ordens_servico').insert([newOrdem]);
+        if (error) throw error;
+        return data[0];
     }
 
     async getOrdensServico() {
-        return this.getAll('ordens_servico') || [];
+        const { data, error } = await this.supabase.from('ordens_servico').select('*');
+        if (error) throw error;
+        return data;
     }
 
     async getOrdenServicoById(id) {
-        const ordens = this.getAll('ordens_servico') || [];
-        return ordens.find(o => o.id === id);
+        const { data, error } = await this.supabase.from('ordens_servico').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
     }
 
     async getOrdensServicoByCliente(clienteId) {
-        const ordens = this.getAll('ordens_servico') || [];
-        return ordens.filter(o => o.client_id === clienteId);
+        const { data, error } = await this.supabase.from('ordens_servico').select('*').eq('client_id', clienteId);
+        if (error) throw error;
+        return data;
     }
 
     async updateOrdenServico(id, updates) {
-        const ordens = this.getAll('ordens_servico') || [];
-        const index = ordens.findIndex(o => o.id === id);
-        if (index !== -1) {
-            ordens[index] = { ...ordens[index], ...updates, updated_at: new Date().toISOString() };
-            this.setAll('ordens_servico', ordens);
-
-            if (this.supabase) {
-                await this.supabase.from('ordens_servico').update(updates).eq('id', id);
-            }
-
-            return ordens[index];
-        }
-        throw new Error('Ordem de serviço not found');
+        updates.updated_at = new Date().toISOString();
+        const { data, error } = await this.supabase.from('ordens_servico').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     async deleteOrdenServico(id) {
-        let ordens = this.getAll('ordens_servico') || [];
-        ordens = ordens.filter(o => o.id !== id);
-        this.setAll('ordens_servico', ordens);
-
-        if (this.supabase) {
-            await this.supabase.from('ordens_servico').delete().eq('id', id);
-        }
-
-        return true;
+        const { data, error } = await this.supabase.from('ordens_servico').delete().eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     // ============================================
     // PEÇAS
     // ============================================
     async createPeca(peca) {
-        const pecas = this.getAll('pecas') || [];
         const newPeca = {
             id: 'peca_' + Date.now(),
             ...peca,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         };
-        pecas.push(newPeca);
-        this.setAll('pecas', pecas);
-
-        if (this.supabase) {
-            await this.supabase.from('pecas').insert([newPeca]);
-        }
-
-        return newPeca;
+        const { data, error } = await this.supabase.from('pecas').insert([newPeca]);
+        if (error) throw error;
+        return data[0];
     }
 
     async getPecas() {
-        return this.getAll('pecas') || [];
+        const { data, error } = await this.supabase.from('pecas').select('*');
+        if (error) throw error;
+        return data;
     }
 
     async getPecaById(id) {
-        const pecas = this.getAll('pecas') || [];
-        return pecas.find(p => p.id === id);
+        const { data, error } = await this.supabase.from('pecas').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
     }
 
     async updatePeca(id, updates) {
-        const pecas = this.getAll('pecas') || [];
-        const index = pecas.findIndex(p => p.id === id);
-        if (index !== -1) {
-            pecas[index] = { ...pecas[index], ...updates, updated_at: new Date().toISOString() };
-            this.setAll('pecas', pecas);
-
-            if (this.supabase) {
-                await this.supabase.from('pecas').update(updates).eq('id', id);
-            }
-
-            return pecas[index];
-        }
-        throw new Error('Peça not found');
+        updates.updated_at = new Date().toISOString();
+        const { data, error } = await this.supabase.from('pecas').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     async deletePeca(id) {
-        let pecas = this.getAll('pecas') || [];
-        pecas = pecas.filter(p => p.id !== id);
-        this.setAll('pecas', pecas);
-
-        if (this.supabase) {
-            await this.supabase.from('pecas').delete().eq('id', id);
-        }
-
-        return true;
+        const { data, error } = await this.supabase.from('pecas').delete().eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     // ============================================
     // IMAGENS
     // ============================================
     async createImagem(imagem) {
-        const imagens = this.getAll('imagens_equipamento') || [];
         const newImagem = {
             id: 'img_' + Date.now(),
             ...imagem,
             created_at: new Date().toISOString(),
         };
-        imagens.push(newImagem);
-        this.setAll('imagens_equipamento', imagens);
-
-        if (this.supabase) {
-            await this.supabase.from('imagens_equipamento').insert([newImagem]);
-        }
-
-        return newImagem;
+        const { data, error } = await this.supabase.from('imagens_equipamento').insert([newImagem]);
+        if (error) throw error;
+        return data[0];
     }
 
     async getImagensByEquipamento(equipamentoId) {
-        const imagens = this.getAll('imagens_equipamento') || [];
-        return imagens.filter(i => i.equipment_id === equipamentoId);
+        const { data, error } = await this.supabase.from('imagens_equipamento').select('*').eq('equipment_id', equipamentoId);
+        if (error) throw error;
+        return data;
     }
 
     async getImagensByOrdenServico(ordemId) {
-        const imagens = this.getAll('imagens_equipamento') || [];
-        return imagens.filter(i => i.ordem_id === ordemId);
+        const { data, error } = await this.supabase.from('imagens_equipamento').select('*').eq('ordem_id', ordemId);
+        if (error) throw error;
+        return data;
     }
 
     async deleteImagem(id) {
-        let imagens = this.getAll('imagens_equipamento') || [];
-        imagens = imagens.filter(i => i.id !== id);
-        this.setAll('imagens_equipamento', imagens);
-
-        if (this.supabase) {
-            await this.supabase.from('imagens_equipamento').delete().eq('id', id);
-        }
-
-        return true;
+        const { data, error } = await this.supabase.from('imagens_equipamento').delete().eq('id', id).select().single();
+        if (error) throw error;
+        return data;
     }
 
     // ============================================
     // HISTÓRICO
     // ============================================
     async createHistoricoOrdenServico(historico) {
-        const historicos = this.getAll('historico_ordem_servico') || [];
         const newHist = {
             id: 'hist_' + Date.now(),
             ...historico,
             created_at: new Date().toISOString(),
         };
-        historicos.push(newHist);
-        this.setAll('historico_ordem_servico', historicos);
-
-        if (this.supabase) {
-            await this.supabase.from('historico_ordem_servico').insert([newHist]);
-        }
-
-        return newHist;
+        const { data, error } = await this.supabase.from('historico_ordem_servico').insert([newHist]);
+        if (error) throw error;
+        return data[0];
     }
 
     async getHistoricoByOrdenServico(ordemId) {
-        const historicos = this.getAll('historico_ordem_servico') || [];
-        return historicos
-            .filter(h => h.ordem_id === ordemId)
-            .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        const { data, error } = await this.supabase.from('historico_ordem_servico')
+            .select('*')
+            .eq('ordem_id', ordemId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data;
     }
 }
 
 // ============================================
-// GLOBAL INSTANCE
+// INICIALIZAÇÃO GLOBAL
 // ============================================
 
-if (typeof createClient !== 'undefined') {
-    const supabaseClient = createClient('https://cdmhzakqcgkmbjlqnosb.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWh6YWtxY2drbWJqbHFub3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTkwMTcsImV4cCI6MjA4ODQzNTAxN30.AeoFUK5sUiKXRpflTlHOw5_3r71A9MSn-q60iYzyjG8')
-    window.db = new DatabaseManager(supabaseClient);
-} else {
-    console.warn('Supabase createClient not found, db will work only com localStorage.');
-    window.db = new DatabaseManager();
+if (typeof createClient === 'undefined') {
+    throw new Error('Supabase client not found. Carregue @supabase/supabase-js antes do db.js');
 }
+
+const supabaseClient = createClient(
+    'https://cdmhzakqcgkmbjlqnosb.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWh6YWtxY2drbWJqbHFub3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTkwMTcsImV4cCI6MjA4ODQzNTAxN30.AeoFUK5sUiKXRpflTlHOw5_3r71A9MSn-q60iYzyjG8'
+);
+
+window.db = new DatabaseManager(supabaseClient);
+console.log('Supabase conectado, db pronto.');

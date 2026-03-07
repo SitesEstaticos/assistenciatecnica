@@ -1,45 +1,27 @@
 // ============================================
-// DATABASE MODULE
+// DATABASE MODULE - COMPLETE
 // ============================================
 
 class DatabaseManager {
-    constructor() {
+    constructor(supabaseClient) {
+        this.supabase = supabaseClient; // opcional, caso queira enviar para Supabase
         this.storagePrefix = 'assistencia_tecnica_';
         this.initLocalStorage();
     }
 
     initLocalStorage() {
-        // Initialize default data structures if they don't exist
-        if (!this.getAll('clientes')) {
-            this.setAll('clientes', []);
-        }
-        if (!this.getAll('equipamentos')) {
-            this.setAll('equipamentos', []);
-        }
-        if (!this.getAll('ordens_servico')) {
-            this.setAll('ordens_servico', []);
-        }
-        if (!this.getAll('pecas')) {
-            this.setAll('pecas', []);
-        }
-        if (!this.getAll('estoque')) {
-            this.setAll('estoque', []);
-        }
-        if (!this.getAll('imagens_equipamento')) {
-            this.setAll('imagens_equipamento', []);
-        }
-        if (!this.getAll('historico_ordem_servico')) {
-            this.setAll('historico_ordem_servico', []);
-        }
+        const tables = ['clientes','equipamentos','ordens_servico','pecas','estoque','imagens_equipamento','historico_ordem_servico'];
+        tables.forEach((key) => {
+            if (!this.getAll(key)) this.setAll(key, []);
+        });
     }
 
-    // Generic methods for local storage
     setAll(key, data) {
         try {
             localStorage.setItem(this.storagePrefix + key, JSON.stringify(data));
-            Logger.log(`Data stored: ${key}`);
+            console.log(`Data stored: ${key}`);
         } catch (error) {
-            Logger.error(`Error storing data: ${key}`, error);
+            console.error(`Error storing data: ${key}`, error);
         }
     }
 
@@ -48,476 +30,334 @@ class DatabaseManager {
             const data = localStorage.getItem(this.storagePrefix + key);
             return data ? JSON.parse(data) : null;
         } catch (error) {
-            Logger.error(`Error retrieving data: ${key}`, error);
+            console.error(`Error retrieving data: ${key}`, error);
             return null;
         }
     }
 
     // ============================================
-    // CLIENTES (Customers)
+    // CLIENTES
     // ============================================
-
     async createCliente(cliente) {
-        try {
-            const clientes = this.getAll('clientes') || [];
-            const newCliente = {
-                id: 'cliente_' + Date.now(),
-                ...cliente,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
-            clientes.push(newCliente);
-            this.setAll('clientes', clientes);
-            Logger.log('Cliente created:', newCliente.id);
-            return newCliente;
-        } catch (error) {
-            Logger.error('Error creating cliente', error);
-            throw error;
+        const clientes = this.getAll('clientes') || [];
+        const newCliente = {
+            id: 'cliente_' + Date.now(),
+            ...cliente,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        clientes.push(newCliente);
+        this.setAll('clientes', clientes);
+        console.log('Cliente created:', newCliente.id);
+
+        // Supabase insert (opcional)
+        if (this.supabase) {
+            await this.supabase.from('clientes').insert([newCliente]);
         }
+
+        return newCliente;
     }
 
     async getClientes() {
-        try {
-            return this.getAll('clientes') || [];
-        } catch (error) {
-            Logger.error('Error fetching clientes', error);
-            return [];
-        }
+        return this.getAll('clientes') || [];
     }
 
     async getClienteById(id) {
-        try {
-            const clientes = this.getAll('clientes') || [];
-            return clientes.find((c) => c.id === id);
-        } catch (error) {
-            Logger.error('Error fetching cliente', error);
-            return null;
-        }
+        const clientes = this.getAll('clientes') || [];
+        return clientes.find(c => c.id === id);
     }
 
     async updateCliente(id, updates) {
-        try {
-            const clientes = this.getAll('clientes') || [];
-            const index = clientes.findIndex((c) => c.id === id);
-            if (index !== -1) {
-                clientes[index] = {
-                    ...clientes[index],
-                    ...updates,
-                    updated_at: new Date().toISOString(),
-                };
-                this.setAll('clientes', clientes);
-                Logger.log('Cliente updated:', id);
-                return clientes[index];
+        const clientes = this.getAll('clientes') || [];
+        const index = clientes.findIndex(c => c.id === id);
+        if (index !== -1) {
+            clientes[index] = { ...clientes[index], ...updates, updated_at: new Date().toISOString() };
+            this.setAll('clientes', clientes);
+
+            if (this.supabase) {
+                await this.supabase.from('clientes').update(updates).eq('id', id);
             }
-            throw new Error('Cliente not found');
-        } catch (error) {
-            Logger.error('Error updating cliente', error);
-            throw error;
+
+            return clientes[index];
         }
+        throw new Error('Cliente not found');
     }
 
     async deleteCliente(id) {
-        try {
-            let clientes = this.getAll('clientes') || [];
-            clientes = clientes.filter((c) => c.id !== id);
-            this.setAll('clientes', clientes);
-            Logger.log('Cliente deleted:', id);
-            return true;
-        } catch (error) {
-            Logger.error('Error deleting cliente', error);
-            throw error;
+        let clientes = this.getAll('clientes') || [];
+        clientes = clientes.filter(c => c.id !== id);
+        this.setAll('clientes', clientes);
+
+        if (this.supabase) {
+            await this.supabase.from('clientes').delete().eq('id', id);
         }
+
+        return true;
     }
 
     // ============================================
-    // EQUIPAMENTOS (Equipment)
+    // EQUIPAMENTOS
     // ============================================
-
     async createEquipamento(equipamento) {
-        try {
-            const equipamentos = this.getAll('equipamentos') || [];
-            const newEquipamento = {
-                id: 'equip_' + Date.now(),
-                ...equipamento,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
-            equipamentos.push(newEquipamento);
-            this.setAll('equipamentos', equipamentos);
-            Logger.log('Equipamento created:', newEquipamento.id);
-            return newEquipamento;
-        } catch (error) {
-            Logger.error('Error creating equipamento', error);
-            throw error;
+        const equipamentos = this.getAll('equipamentos') || [];
+        const newEquip = {
+            id: 'equip_' + Date.now(),
+            ...equipamento,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        equipamentos.push(newEquip);
+        this.setAll('equipamentos', equipamentos);
+
+        if (this.supabase) {
+            await this.supabase.from('equipamentos').insert([newEquip]);
         }
+
+        return newEquip;
     }
 
     async getEquipamentos() {
-        try {
-            return this.getAll('equipamentos') || [];
-        } catch (error) {
-            Logger.error('Error fetching equipamentos', error);
-            return [];
-        }
+        return this.getAll('equipamentos') || [];
     }
 
     async getEquipamentoById(id) {
-        try {
-            const equipamentos = this.getAll('equipamentos') || [];
-            return equipamentos.find((e) => e.id === id);
-        } catch (error) {
-            Logger.error('Error fetching equipamento', error);
-            return null;
-        }
+        const equipamentos = this.getAll('equipamentos') || [];
+        return equipamentos.find(e => e.id === id);
     }
 
     async getEquipamentosByCliente(clienteId) {
-        try {
-            const equipamentos = this.getAll('equipamentos') || [];
-            return equipamentos.filter((e) => e.client_id === clienteId);
-        } catch (error) {
-            Logger.error('Error fetching equipamentos by cliente', error);
-            return [];
-        }
+        const equipamentos = this.getAll('equipamentos') || [];
+        return equipamentos.filter(e => e.client_id === clienteId);
     }
 
     async updateEquipamento(id, updates) {
-        try {
-            const equipamentos = this.getAll('equipamentos') || [];
-            const index = equipamentos.findIndex((e) => e.id === id);
-            if (index !== -1) {
-                equipamentos[index] = {
-                    ...equipamentos[index],
-                    ...updates,
-                    updated_at: new Date().toISOString(),
-                };
-                this.setAll('equipamentos', equipamentos);
-                Logger.log('Equipamento updated:', id);
-                return equipamentos[index];
+        const equipamentos = this.getAll('equipamentos') || [];
+        const index = equipamentos.findIndex(e => e.id === id);
+        if (index !== -1) {
+            equipamentos[index] = { ...equipamentos[index], ...updates, updated_at: new Date().toISOString() };
+            this.setAll('equipamentos', equipamentos);
+
+            if (this.supabase) {
+                await this.supabase.from('equipamentos').update(updates).eq('id', id);
             }
-            throw new Error('Equipamento not found');
-        } catch (error) {
-            Logger.error('Error updating equipamento', error);
-            throw error;
+
+            return equipamentos[index];
         }
+        throw new Error('Equipamento not found');
     }
 
     async deleteEquipamento(id) {
-        try {
-            let equipamentos = this.getAll('equipamentos') || [];
-            equipamentos = equipamentos.filter((e) => e.id !== id);
-            this.setAll('equipamentos', equipamentos);
-            Logger.log('Equipamento deleted:', id);
-            return true;
-        } catch (error) {
-            Logger.error('Error deleting equipamento', error);
-            throw error;
+        let equipamentos = this.getAll('equipamentos') || [];
+        equipamentos = equipamentos.filter(e => e.id !== id);
+        this.setAll('equipamentos', equipamentos);
+
+        if (this.supabase) {
+            await this.supabase.from('equipamentos').delete().eq('id', id);
         }
+
+        return true;
     }
 
     // ============================================
-    // ORDENS DE SERVIÇO (Service Orders)
+    // ORDENS DE SERVIÇO
     // ============================================
-
     async createOrdenServico(ordem) {
-        try {
-            const ordensServico = this.getAll('ordens_servico') || [];
-            const newOrdem = {
-                id: 'os_' + Date.now(),
-                os_number: generateOSNumber(),
-                ...ordem,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
-            ordensServico.push(newOrdem);
-            this.setAll('ordens_servico', ordensServico);
+        const ordens = this.getAll('ordens_servico') || [];
+        const newOrdem = {
+            id: 'os_' + Date.now(),
+            os_number: 'OS-' + Date.now(),
+            ...ordem,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        ordens.push(newOrdem);
+        this.setAll('ordens_servico', ordens);
 
-            // Create history entry
-            await this.createHistoricoOrdenServico({
-                ordem_id: newOrdem.id,
-                status_anterior: null,
-                novo_status: ordem.status || 'recebido',
-                descricao: 'Ordem de serviço criada',
-                tecnico_responsavel: auth.getUserEmail(),
-            });
-
-            Logger.log('Ordem de serviço created:', newOrdem.id);
-            return newOrdem;
-        } catch (error) {
-            Logger.error('Error creating ordem de serviço', error);
-            throw error;
+        if (this.supabase) {
+            await this.supabase.from('ordens_servico').insert([newOrdem]);
         }
+
+        return newOrdem;
     }
 
     async getOrdensServico() {
-        try {
-            return this.getAll('ordens_servico') || [];
-        } catch (error) {
-            Logger.error('Error fetching ordens de serviço', error);
-            return [];
-        }
+        return this.getAll('ordens_servico') || [];
     }
 
     async getOrdenServicoById(id) {
-        try {
-            const ordensServico = this.getAll('ordens_servico') || [];
-            return ordensServico.find((o) => o.id === id);
-        } catch (error) {
-            Logger.error('Error fetching ordem de serviço', error);
-            return null;
-        }
+        const ordens = this.getAll('ordens_servico') || [];
+        return ordens.find(o => o.id === id);
     }
 
     async getOrdensServicoByCliente(clienteId) {
-        try {
-            const ordensServico = this.getAll('ordens_servico') || [];
-            return ordensServico.filter((o) => o.client_id === clienteId);
-        } catch (error) {
-            Logger.error('Error fetching ordens de serviço by cliente', error);
-            return [];
-        }
+        const ordens = this.getAll('ordens_servico') || [];
+        return ordens.filter(o => o.client_id === clienteId);
     }
 
     async updateOrdenServico(id, updates) {
-        try {
-            const ordensServico = this.getAll('ordens_servico') || [];
-            const index = ordensServico.findIndex((o) => o.id === id);
-            if (index !== -1) {
-                const oldStatus = ordensServico[index].status;
-                ordensServico[index] = {
-                    ...ordensServico[index],
-                    ...updates,
-                    updated_at: new Date().toISOString(),
-                };
+        const ordens = this.getAll('ordens_servico') || [];
+        const index = ordens.findIndex(o => o.id === id);
+        if (index !== -1) {
+            ordens[index] = { ...ordens[index], ...updates, updated_at: new Date().toISOString() };
+            this.setAll('ordens_servico', ordens);
 
-                // Create history entry if status changed
-                if (oldStatus !== updates.status) {
-                    await this.createHistoricoOrdenServico({
-                        ordem_id: id,
-                        status_anterior: oldStatus,
-                        novo_status: updates.status,
-                        descricao: updates.status_description || `Status alterado para ${getStatusLabel(updates.status)}`,
-                        tecnico_responsavel: auth.getUserEmail(),
-                    });
-                }
-
-                this.setAll('ordens_servico', ordensServico);
-                Logger.log('Ordem de serviço updated:', id);
-                return ordensServico[index];
+            if (this.supabase) {
+                await this.supabase.from('ordens_servico').update(updates).eq('id', id);
             }
-            throw new Error('Ordem de serviço not found');
-        } catch (error) {
-            Logger.error('Error updating ordem de serviço', error);
-            throw error;
+
+            return ordens[index];
         }
+        throw new Error('Ordem de serviço not found');
     }
 
     async deleteOrdenServico(id) {
-        try {
-            let ordensServico = this.getAll('ordens_servico') || [];
-            ordensServico = ordensServico.filter((o) => o.id !== id);
-            this.setAll('ordens_servico', ordensServico);
-            Logger.log('Ordem de serviço deleted:', id);
-            return true;
-        } catch (error) {
-            Logger.error('Error deleting ordem de serviço', error);
-            throw error;
+        let ordens = this.getAll('ordens_servico') || [];
+        ordens = ordens.filter(o => o.id !== id);
+        this.setAll('ordens_servico', ordens);
+
+        if (this.supabase) {
+            await this.supabase.from('ordens_servico').delete().eq('id', id);
         }
+
+        return true;
     }
 
     // ============================================
-    // PEÇAS (Parts)
+    // PEÇAS
     // ============================================
-
     async createPeca(peca) {
-        try {
-            const pecas = this.getAll('pecas') || [];
-            const newPeca = {
-                id: 'peca_' + Date.now(),
-                ...peca,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
-            pecas.push(newPeca);
-            this.setAll('pecas', pecas);
-            Logger.log('Peça created:', newPeca.id);
-            return newPeca;
-        } catch (error) {
-            Logger.error('Error creating peça', error);
-            throw error;
+        const pecas = this.getAll('pecas') || [];
+        const newPeca = {
+            id: 'peca_' + Date.now(),
+            ...peca,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        pecas.push(newPeca);
+        this.setAll('pecas', pecas);
+
+        if (this.supabase) {
+            await this.supabase.from('pecas').insert([newPeca]);
         }
+
+        return newPeca;
     }
 
     async getPecas() {
-        try {
-            return this.getAll('pecas') || [];
-        } catch (error) {
-            Logger.error('Error fetching peças', error);
-            return [];
-        }
+        return this.getAll('pecas') || [];
     }
 
     async getPecaById(id) {
-        try {
-            const pecas = this.getAll('pecas') || [];
-            return pecas.find((p) => p.id === id);
-        } catch (error) {
-            Logger.error('Error fetching peça', error);
-            return null;
-        }
+        const pecas = this.getAll('pecas') || [];
+        return pecas.find(p => p.id === id);
     }
 
     async updatePeca(id, updates) {
-        try {
-            const pecas = this.getAll('pecas') || [];
-            const index = pecas.findIndex((p) => p.id === id);
-            if (index !== -1) {
-                pecas[index] = {
-                    ...pecas[index],
-                    ...updates,
-                    updated_at: new Date().toISOString(),
-                };
-                this.setAll('pecas', pecas);
-                Logger.log('Peça updated:', id);
-                return pecas[index];
+        const pecas = this.getAll('pecas') || [];
+        const index = pecas.findIndex(p => p.id === id);
+        if (index !== -1) {
+            pecas[index] = { ...pecas[index], ...updates, updated_at: new Date().toISOString() };
+            this.setAll('pecas', pecas);
+
+            if (this.supabase) {
+                await this.supabase.from('pecas').update(updates).eq('id', id);
             }
-            throw new Error('Peça not found');
-        } catch (error) {
-            Logger.error('Error updating peça', error);
-            throw error;
+
+            return pecas[index];
         }
+        throw new Error('Peça not found');
     }
 
     async deletePeca(id) {
-        try {
-            let pecas = this.getAll('pecas') || [];
-            pecas = pecas.filter((p) => p.id !== id);
-            this.setAll('pecas', pecas);
-            Logger.log('Peça deleted:', id);
-            return true;
-        } catch (error) {
-            Logger.error('Error deleting peça', error);
-            throw error;
+        let pecas = this.getAll('pecas') || [];
+        pecas = pecas.filter(p => p.id !== id);
+        this.setAll('pecas', pecas);
+
+        if (this.supabase) {
+            await this.supabase.from('pecas').delete().eq('id', id);
         }
+
+        return true;
     }
 
     // ============================================
-    // IMAGENS (Images)
+    // IMAGENS
     // ============================================
-
     async createImagem(imagem) {
-        try {
-            const imagens = this.getAll('imagens_equipamento') || [];
-            const newImagem = {
-                id: 'img_' + Date.now(),
-                ...imagem,
-                created_at: new Date().toISOString(),
-            };
-            imagens.push(newImagem);
-            this.setAll('imagens_equipamento', imagens);
-            Logger.log('Imagem created:', newImagem.id);
-            return newImagem;
-        } catch (error) {
-            Logger.error('Error creating imagem', error);
-            throw error;
+        const imagens = this.getAll('imagens_equipamento') || [];
+        const newImagem = {
+            id: 'img_' + Date.now(),
+            ...imagem,
+            created_at: new Date().toISOString(),
+        };
+        imagens.push(newImagem);
+        this.setAll('imagens_equipamento', imagens);
+
+        if (this.supabase) {
+            await this.supabase.from('imagens_equipamento').insert([newImagem]);
         }
+
+        return newImagem;
     }
 
     async getImagensByEquipamento(equipamentoId) {
-        try {
-            const imagens = this.getAll('imagens_equipamento') || [];
-            return imagens.filter((i) => i.equipment_id === equipamentoId);
-        } catch (error) {
-            Logger.error('Error fetching imagens by equipamento', error);
-            return [];
-        }
+        const imagens = this.getAll('imagens_equipamento') || [];
+        return imagens.filter(i => i.equipment_id === equipamentoId);
     }
 
     async getImagensByOrdenServico(ordemId) {
-        try {
-            const imagens = this.getAll('imagens_equipamento') || [];
-            return imagens.filter((i) => i.ordem_id === ordemId);
-        } catch (error) {
-            Logger.error('Error fetching imagens by ordem de serviço', error);
-            return [];
-        }
+        const imagens = this.getAll('imagens_equipamento') || [];
+        return imagens.filter(i => i.ordem_id === ordemId);
     }
 
     async deleteImagem(id) {
-        try {
-            let imagens = this.getAll('imagens_equipamento') || [];
-            imagens = imagens.filter((i) => i.id !== id);
-            this.setAll('imagens_equipamento', imagens);
-            Logger.log('Imagem deleted:', id);
-            return true;
-        } catch (error) {
-            Logger.error('Error deleting imagem', error);
-            throw error;
+        let imagens = this.getAll('imagens_equipamento') || [];
+        imagens = imagens.filter(i => i.id !== id);
+        this.setAll('imagens_equipamento', imagens);
+
+        if (this.supabase) {
+            await this.supabase.from('imagens_equipamento').delete().eq('id', id);
         }
+
+        return true;
     }
 
     // ============================================
-    // HISTÓRICO (History)
+    // HISTÓRICO
     // ============================================
-
     async createHistoricoOrdenServico(historico) {
-        try {
-            const historicos = this.getAll('historico_ordem_servico') || [];
-            const newHistorico = {
-                id: 'hist_' + Date.now(),
-                ...historico,
-                created_at: new Date().toISOString(),
-            };
-            historicos.push(newHistorico);
-            this.setAll('historico_ordem_servico', historicos);
-            Logger.log('Histórico created:', newHistorico.id);
-            return newHistorico;
-        } catch (error) {
-            Logger.error('Error creating histórico', error);
-            throw error;
+        const historicos = this.getAll('historico_ordem_servico') || [];
+        const newHist = {
+            id: 'hist_' + Date.now(),
+            ...historico,
+            created_at: new Date().toISOString(),
+        };
+        historicos.push(newHist);
+        this.setAll('historico_ordem_servico', historicos);
+
+        if (this.supabase) {
+            await this.supabase.from('historico_ordem_servico').insert([newHist]);
         }
+
+        return newHist;
     }
 
     async getHistoricoByOrdenServico(ordemId) {
-        try {
-            const historicos = this.getAll('historico_ordem_servico') || [];
-            return historicos.filter((h) => h.ordem_id === ordemId).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        } catch (error) {
-            Logger.error('Error fetching histórico by ordem de serviço', error);
-            return [];
-        }
-    }
-
-    // ============================================
-    // ANALYTICS
-    // ============================================
-
-    async getStatistics() {
-        try {
-            const clientes = this.getAll('clientes') || [];
-            const equipamentos = this.getAll('equipamentos') || [];
-            const ordensServico = this.getAll('ordens_servico') || [];
-            const pecas = this.getAll('pecas') || [];
-
-            const osAbertas = ordensServico.filter((o) => ['recebido', 'em_analise', 'aguardando_peca', 'em_manutencao'].includes(o.status)).length;
-            const osFinalizadas = ordensServico.filter((o) => ['finalizado', 'entregue'].includes(o.status)).length;
-            const faturamento = ordensServico.reduce((total, o) => total + (o.service_value || 0), 0);
-
-            return {
-                totalClientes: clientes.length,
-                totalEquipamentos: equipamentos.length,
-                totalOrdenServico: ordensServico.length,
-                osAbertas,
-                osFinalizadas,
-                faturamento,
-                pecasEmEstoque: pecas.length,
-            };
-        } catch (error) {
-            Logger.error('Error fetching statistics', error);
-            return {};
-        }
+        const historicos = this.getAll('historico_ordem_servico') || [];
+        return historicos
+            .filter(h => h.ordem_id === ordemId)
+            .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
     }
 }
 
-// Create global database instance
-const db = new DatabaseManager();
+// ============================================
+// GLOBAL INSTANCE
+// ============================================
+
+if (typeof createClient !== 'undefined') {
+    const supabaseClient = createClient('https://cdmhzakqcgkmbjlqnosb.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWh6YWtxY2drbWJqbHFub3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTkwMTcsImV4cCI6MjA4ODQzNTAxN30.AeoFUK5sUiKXRpflTlHOw5_3r71A9MSn-q60iYzyjG8')
+    window.db = new DatabaseManager(supabaseClient);
+} else {
+    console.warn('Supabase createClient not found, db will work only com localStorage.');
+    window.db = new DatabaseManager();
+}

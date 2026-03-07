@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -66,12 +68,7 @@
             <div class="content-wrapper">
                 <!-- Search and Filter -->
                 <div class="search-bar">
-                    <input 
-                        type="text" 
-                        id="searchParts" 
-                        placeholder="Buscar por nome ou código..." 
-                        class="search-input"
-                    >
+                    <input type="text" id="searchParts" placeholder="Buscar por nome ou código..." class="search-input">
                 </div>
 
                 <!-- Stock Summary -->
@@ -145,80 +142,38 @@
 
                 <div class="form-group">
                     <label for="partName">Nome da Peça *</label>
-                    <input 
-                        type="text" 
-                        id="partName" 
-                        name="name" 
-                        placeholder="Ex: Bateria, SSD, RAM" 
-                        required
-                    >
+                    <input type="text" id="partName" name="name" placeholder="Ex: Bateria, SSD, RAM" required>
                 </div>
 
                 <div class="form-group">
                     <label for="partCode">Código/SKU</label>
-                    <input 
-                        type="text" 
-                        id="partCode" 
-                        name="code" 
-                        placeholder="Código único da peça"
-                    >
+                    <input type="text" id="partCode" name="code" placeholder="Código único da peça">
                 </div>
 
                 <div class="form-group">
                     <label for="partQuantity">Quantidade em Estoque *</label>
-                    <input 
-                        type="number" 
-                        id="partQuantity" 
-                        name="quantity" 
-                        placeholder="0" 
-                        min="0"
-                        required
-                    >
+                    <input type="number" id="partQuantity" name="quantity" placeholder="0" min="0" required>
                 </div>
 
                 <div class="form-group">
                     <label for="partMinQuantity">Quantidade Mínima</label>
-                    <input 
-                        type="number" 
-                        id="partMinQuantity" 
-                        name="min_quantity" 
-                        placeholder="0" 
-                        min="0"
-                    >
+                    <input type="number" id="partMinQuantity" name="min_quantity" placeholder="0" min="0">
                 </div>
 
                 <div class="form-group">
                     <label for="partCostPrice">Valor de Compra (R$) *</label>
-                    <input 
-                        type="number" 
-                        id="partCostPrice" 
-                        name="cost_price" 
-                        placeholder="0.00" 
-                        step="0.01"
-                        required
-                    >
+                    <input type="number" id="partCostPrice" name="cost_price" placeholder="0.00" step="0.01" required>
                 </div>
 
                 <div class="form-group">
                     <label for="partSalePrice">Valor de Venda (R$) *</label>
-                    <input 
-                        type="number" 
-                        id="partSalePrice" 
-                        name="sale_price" 
-                        placeholder="0.00" 
-                        step="0.01"
-                        required
-                    >
+                    <input type="number" id="partSalePrice" name="sale_price" placeholder="0.00" step="0.01" required>
                 </div>
 
                 <div class="form-group full-width">
                     <label for="partDescription">Descrição</label>
-                    <textarea 
-                        id="partDescription" 
-                        name="description" 
-                        placeholder="Descrição detalhada da peça"
-                        rows="3"
-                    ></textarea>
+                    <textarea id="partDescription" name="description" placeholder="Descrição detalhada da peça"
+                        rows="3"></textarea>
                 </div>
 
                 <div class="form-actions">
@@ -285,11 +240,12 @@
             </div>
         </div>
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/db.js"></script>
     <script src="js/estoque.js"></script>
     <script src="js/app.js"></script>
 </body>
+
 </html>

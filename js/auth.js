@@ -2,63 +2,108 @@
 // AUTHENTICATION MODULE - SUPABASE
 // ============================================
 
+// Fallback para Logger caso não exista
+if (!window.Logger) {
+    window.Logger = {
+        log: (...args) => console.log('[Auth]', ...args),
+        error: (...args) => console.error('[Auth]', ...args)
+    };
+}
+
+// Validação simples de email caso não exista
+if (!window.validateEmail) {
+    window.validateEmail = function (email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    };
+}
+
 class AuthManager {
     constructor(supabaseClient) {
-        this.supabase = supabaseClient; // precisa ser criado antes
+        if (!supabaseClient) {
+            throw new Error("Supabase client não foi inicializado.");
+        }
+
+        this.supabase = supabaseClient;
         this.user = null;
         this.session = null;
         this.isAuthenticated = false;
+
         this.init();
     }
 
     async init() {
         try {
-            // Check Supabase session
-            const { data: { session } } = await this.supabase.auth.getSession();
+            const { data: { session }, error } = await this.supabase.auth.getSession();
+
+            if (error) throw error;
+
             if (session && session.user) {
                 this.session = session;
                 this.user = session.user;
                 this.isAuthenticated = true;
-                Logger.log('User session restored from Supabase');
+                Logger.log('Sessão restaurada automaticamente');
             } else {
                 this.clearSession();
             }
+
         } catch (err) {
-            Logger.error('Error restoring Supabase session', err);
+            Logger.error('Erro ao restaurar sessão', err);
             this.clearSession();
         }
     }
 
     async login(email, password) {
-        if (!email || !password) throw new Error('Email e senha são obrigatórios');
-        if (!validateEmail(email)) throw new Error('Email inválido');
-
-        Logger.log('Attempting login for: ' + email);
-
-        const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            Logger.error('Login failed', error);
-            throw error;
+        if (!email || !password) {
+            throw new Error('Email e senha são obrigatórios');
         }
 
-        this.session = data.session;
-        this.user = data.user;
-        this.isAuthenticated = true;
+        if (!validateEmail(email)) {
+            throw new Error('Email inválido');
+        }
 
-        Logger.log('Login successful for: ' + email);
-        return data;
+        try {
+
+            Logger.log('Tentando login:', email);
+
+            const { data, error } = await this.supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) throw error;
+
+            this.session = data.session;
+            this.user = data.user;
+            this.isAuthenticated = true;
+
+            Logger.log('Login realizado com sucesso');
+
+            return data;
+
+        } catch (err) {
+            Logger.error('Falha no login', err);
+            throw err;
+        }
     }
 
     async logout() {
         try {
+
             const { error } = await this.supabase.auth.signOut();
+
             if (error) throw error;
+
             this.clearSession();
-            Logger.log('Logout successful');
+
+            Logger.log('Logout realizado');
+
             return true;
+
         } catch (err) {
-            Logger.error('Logout failed', err);
+
+            Logger.error('Erro no logout', err);
             throw err;
+
         }
     }
 
@@ -81,60 +126,102 @@ class AuthManager {
     }
 
     getUserEmail() {
-        return this.user?.email || null;
+        return this.user ? this.user.email : null;
     }
 
     getUserId() {
-        return this.user?.id || null;
+        return this.user ? this.user.id : null;
     }
 
     async refreshToken() {
         try {
+
             const { data, error } = await this.supabase.auth.refreshSession();
+
             if (error) throw error;
 
             this.session = data.session;
             this.user = data.session.user;
-            Logger.log('Token refreshed successfully');
+
+            Logger.log('Token renovado');
+
             return this.session;
+
         } catch (err) {
-            Logger.error('Token refresh failed', err);
+
+            Logger.error('Erro ao renovar token', err);
+
             this.clearSession();
+
             throw err;
         }
     }
 
     async updateProfile(updates) {
-        if (!this.user) throw new Error('No user logged in');
-        const { data, error } = await this.supabase.auth.updateUser(updates);
-        if (error) {
-            Logger.error('Profile update failed', error);
-            throw error;
+
+        if (!this.user) {
+            throw new Error('Nenhum usuário logado');
         }
-        this.user = data.user;
-        this.session.user = data.user;
-        Logger.log('Profile updated successfully');
-        return this.user;
+
+        try {
+
+            const { data, error } = await this.supabase.auth.updateUser(updates);
+
+            if (error) throw error;
+
+            this.user = data.user;
+            this.session.user = data.user;
+
+            Logger.log('Perfil atualizado');
+
+            return this.user;
+
+        } catch (err) {
+
+            Logger.error('Erro ao atualizar perfil', err);
+            throw err;
+
+        }
     }
 
     async changePassword(newPassword) {
-        if (!newPassword) throw new Error('New password is required');
-        const { data, error } = await this.supabase.auth.updateUser({ password: newPassword });
-        if (error) {
-            Logger.error('Password change failed', error);
-            throw error;
+
+        if (!newPassword) {
+            throw new Error('Nova senha obrigatória');
         }
-        Logger.log('Password changed successfully');
-        return true;
+
+        try {
+
+            const { error } = await this.supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) throw error;
+
+            Logger.log('Senha alterada com sucesso');
+
+            return true;
+
+        } catch (err) {
+
+            Logger.error('Erro ao alterar senha', err);
+            throw err;
+
+        }
     }
 }
 
 // ============================================
-// USAGE EXAMPLE
+// CREATE GLOBAL INSTANCE
 // ============================================
 
-// Import supabase-js antes:
-// import { createClient } from '@supabase/supabase-js';
-// const supabase = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
+(function () {
 
-// const auth = new AuthManager(supabase);
+    if (!window.supabaseClient) {
+        console.error("Supabase client não encontrado. Verifique se supabase.js foi carregado antes.");
+        return;
+    }
+
+    window.auth = new AuthManager(window.supabaseClient);
+
+})();

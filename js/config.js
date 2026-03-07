@@ -4,15 +4,15 @@
 
 // Supabase Configuration
 const SUPABASE_CONFIG = {
-    URL: 'https://YOUR_SUPABASE_URL.supabase.co',
-    ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+    URL: 'https://cdmhzakqcgkmbjlqnosb.supabase.co/',
+    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWh6YWtxY2drbWJqbHFub3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTkwMTcsImV4cCI6MjA4ODQzNTAxN30.AeoFUK5sUiKXRpflTlHOw5_3r71A9MSn-q60iYzyjG8',
     // Replace the above with your actual Supabase credentials
 };
 
 // Cloudinary Configuration
 const CLOUDINARY_CONFIG = {
-    CLOUD_NAME: 'YOUR_CLOUDINARY_CLOUD_NAME',
-    UPLOAD_PRESET: 'YOUR_CLOUDINARY_UPLOAD_PRESET',
+    CLOUD_NAME: 'ddbtzkw3a',
+    UPLOAD_PRESET: 'assistenciatecnica',
     // Replace the above with your actual Cloudinary credentials
 };
 

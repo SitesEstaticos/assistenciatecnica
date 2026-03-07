@@ -1,9 +1,8 @@
 // ============================================
-// CLIENTES MODULE - ROBUST VERSION
+// CLIENTES MODULE - TOTAL SUPABASE VERSION
 // ============================================
 
 let currentClientId = null;
-let allClientes = [];
 let isLoading = false;
 
 async function initClientesPage() {
@@ -24,9 +23,9 @@ async function loadClientes() {
     if (isLoading) return;
     isLoading = true;
     try {
-        allClientes = await db.getClientes();
-        renderClientesTable(allClientes);
-        Logger.log('Clientes loaded:', allClientes.length);
+        const clientes = await db.getClientes();
+        renderClientesTable(clientes);
+        Logger.log('Clientes loaded:', clientes.length);
     } catch (error) {
         Logger.error('Error loading clientes', error);
         alert('Erro ao carregar clientes: ' + error.message);
@@ -55,7 +54,7 @@ function renderClientesTable(clientes) {
                 <button class="btn btn-small btn-secondary" onclick="viewClientEquipments('${cliente.id}')">Ver</button>
             </td>
             <td>
-                <button class="btn btn-small btn-primary" onclick="editCliente('${cliente.id}')">Editar</button>
+                <button class="btn btn-small btn-primary" onclick="openEditClientModal('${cliente.id}')">Editar</button>
                 <button class="btn btn-small btn-danger" onclick="deleteCliente('${cliente.id}')">Deletar</button>
             </td>
         `;
@@ -74,15 +73,21 @@ function setupEventListeners() {
     const editClientBtn = document.getElementById('editClientBtn');
 
     if (newClientBtn) newClientBtn.addEventListener('click', openNewClientModal);
+
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
+        searchInput.addEventListener('input', async (e) => {
             const term = e.target.value.toLowerCase();
-            const filtered = allClientes.filter(c =>
-                c.name.toLowerCase().includes(term) ||
-                c.email.toLowerCase().includes(term) ||
-                c.phone.includes(term)
-            );
-            renderClientesTable(filtered);
+            try {
+                const allClientes = await db.getClientes();
+                const filtered = allClientes.filter(c =>
+                    c.name.toLowerCase().includes(term) ||
+                    c.email.toLowerCase().includes(term) ||
+                    c.phone.includes(term)
+                );
+                renderClientesTable(filtered);
+            } catch (error) {
+                Logger.error('Error searching clients', error);
+            }
         });
     }
 
@@ -114,19 +119,24 @@ function openNewClientModal() {
     document.getElementById('clientModal').classList.remove('hidden');
 }
 
-function openEditClientModal(clienteId) {
+async function openEditClientModal(clienteId) {
     currentClientId = clienteId;
-    const cliente = allClientes.find(c => c.id === clienteId);
-    if (!cliente) return alert('Cliente não encontrado.');
+    try {
+        const cliente = await db.getClienteById(clienteId);
+        if (!cliente) return alert('Cliente não encontrado.');
 
-    document.getElementById('clientId').value = cliente.id;
-    document.getElementById('clientName').value = cliente.name;
-    document.getElementById('clientEmail').value = cliente.email;
-    document.getElementById('clientPhone').value = cliente.phone;
-    document.getElementById('clientCpf').value = cliente.cpf || '';
-    document.getElementById('clientAddress').value = cliente.address || '';
-    document.getElementById('modalTitle').textContent = 'Editar Cliente';
-    document.getElementById('clientModal').classList.remove('hidden');
+        document.getElementById('clientId').value = cliente.id;
+        document.getElementById('clientName').value = cliente.name;
+        document.getElementById('clientEmail').value = cliente.email;
+        document.getElementById('clientPhone').value = cliente.phone;
+        document.getElementById('clientCpf').value = cliente.cpf || '';
+        document.getElementById('clientAddress').value = cliente.address || '';
+        document.getElementById('modalTitle').textContent = 'Editar Cliente';
+        document.getElementById('clientModal').classList.remove('hidden');
+    } catch (error) {
+        Logger.error('Error fetching client', error);
+        alert('Erro ao carregar cliente: ' + error.message);
+    }
 }
 
 async function saveCliente(e) {
@@ -159,12 +169,6 @@ async function saveCliente(e) {
     } finally {
         showLoading(false);
     }
-}
-
-async function editCliente(clienteId) {
-    const cliente = allClientes.find(c => c.id === clienteId);
-    if (!cliente) return alert('Cliente não encontrado.');
-    openEditClientModal(clienteId);
 }
 
 async function deleteCliente(clienteId) {

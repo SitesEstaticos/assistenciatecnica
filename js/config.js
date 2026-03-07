@@ -1,47 +1,59 @@
 // ============================================
-// CONFIGURATION FILE
+// CONFIGURATION FILE - AUDITADO
 // ============================================
 
-// Supabase Configuration
+// =====================
+// SUPABASE CONFIGURATION
+// =====================
 const SUPABASE_CONFIG = {
     URL: 'https://cdmhzakqcgkmbjlqnosb.supabase.co',
     ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWh6YWtxY2drbWJqbHFub3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTkwMTcsImV4cCI6MjA4ODQzNTAxN30.AeoFUK5sUiKXRpflTlHOw5_3r71A9MSn-q60iYzyjG8',
-    // Replace the above with your actual Supabase credentials
+    // ATENÇÃO: em site estático, qualquer usuário pode ver essas chaves. Use apenas para funcionalidades públicas.
 };
 
-// Cloudinary Configuration
+// =====================
+// CLOUDINARY CONFIGURATION
+// =====================
 const CLOUDINARY_CONFIG = {
     CLOUD_NAME: 'ddbtzkw3a',
     UPLOAD_PRESET: 'assistenciatecnica',
-    // Replace the above with your actual Cloudinary credentials
+    // Em site estático, use preset limitado e regras do Cloudinary (unsigned upload seguro)
 };
 
-// API Configuration
+// =====================
+// API CONFIGURATION
+// =====================
 const API_CONFIG = {
-    TIMEOUT: 10000, // 10 seconds
+    TIMEOUT: 10000, // 10 segundos
     RETRY_ATTEMPTS: 3,
-    RETRY_DELAY: 1000, // 1 second
+    RETRY_DELAY: 1000, // 1 segundo
 };
 
-// Application Configuration
+// =====================
+// APP CONFIGURATION
+// =====================
 const APP_CONFIG = {
     APP_NAME: 'Assistência Técnica',
     APP_VERSION: '1.0.0',
-    ENVIRONMENT: 'production', // 'development' or 'production'
+    ENVIRONMENT: 'production', // 'development' ou 'production'
     LOG_ENABLED: true,
     DEBUG_MODE: false,
 };
 
-// Image Configuration
+// =====================
+// IMAGE CONFIGURATION
+// =====================
 const IMAGE_CONFIG = {
     MAX_SIZE: 10 * 1024 * 1024, // 10MB
     ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    COMPRESSION_QUALITY: 0.8,
+    COMPRESSION_QUALITY: 0.8, // Para canvas compress
     MAX_WIDTH: 1920,
     MAX_HEIGHT: 1080,
 };
 
-// Status Configuration
+// =====================
+// STATUS CONFIGURATION
+// =====================
 const STATUS_CONFIG = {
     RECEBIDO: 'recebido',
     EM_ANALISE: 'em_analise',
@@ -69,7 +81,9 @@ const STATUS_COLORS = {
     entregue: '#d1fae5',
 };
 
-// Image Type Configuration
+// =====================
+// IMAGE TYPE CONFIGURATION
+// =====================
 const IMAGE_TYPES = {
     RECEBIMENTO_FRONTAL: 'recebimento_frontal',
     RECEBIMENTO_TRASEIRA: 'recebimento_traseira',
@@ -94,101 +108,93 @@ const IMAGE_TYPE_LABELS = {
     apos_reparo: 'Após Reparo',
 };
 
-// Utility function to get status label
+// =====================
+// UTILITY FUNCTIONS
+// =====================
+
+// Status
 function getStatusLabel(status) {
     return STATUS_LABELS[status] || status;
 }
-
-// Utility function to get status color
 function getStatusColor(status) {
     return STATUS_COLORS[status] || '#e2e8f0';
 }
 
-// Utility function to get image type label
+// Image Type
 function getImageTypeLabel(type) {
     return IMAGE_TYPE_LABELS[type] || type;
 }
 
-// Utility function to format currency
+// Currency
 function formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-    }).format(value || 0);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
-// Utility function to format date
+// Date
 function formatDate(date) {
-    if (!date) return '';
+    if (!date) return 'N/A';
     const d = new Date(date);
-    return new Intl.DateTimeFormat('pt-BR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-    }).format(d);
+    return isNaN(d) ? 'N/A' : new Intl.DateTimeFormat('pt-BR', { year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
 }
 
-// Utility function to format datetime
+// DateTime
 function formatDateTime(date) {
-    if (!date) return '';
+    if (!date) return 'N/A';
     const d = new Date(date);
-    return new Intl.DateTimeFormat('pt-BR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
+    return isNaN(d) ? 'N/A' : new Intl.DateTimeFormat('pt-BR', {
+        year:'numeric', month:'2-digit', day:'2-digit',
+        hour:'2-digit', minute:'2-digit', second:'2-digit'
     }).format(d);
 }
 
-// Utility function to generate OS number
+// Generate unique OS number
 function generateOSNumber() {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-    return `OS-${year}${month}${day}-${random}`;
+    const ts = Date.now();
+    const random = String(Math.floor(Math.random()*1000000)).padStart(6,'0');
+    return `OS-${ts}-${random}`;
 }
 
-// Utility function to validate email
+// Validate email
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
 }
 
-// Utility function to validate phone
+// Validate phone
 function validatePhone(phone) {
     const re = /^[\d\s\-\(\)]+$/;
-    return re.test(phone) && phone.replace(/\D/g, '').length >= 10;
+    return re.test(phone) && phone.replace(/\D/g,'').length >= 10;
 }
 
-// Utility function to validate CPF
+// Validate CPF (formato + dígitos verificadores)
 function validateCPF(cpf) {
-    const re = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
-    return re.test(cpf);
+    cpf = (cpf || '').replace(/\D/g,'');
+    if(!cpf || cpf.length!==11 || /^(\d)\1{10}$/.test(cpf)) return false;
+    let sum, rest;
+    sum = 0;
+    for(let i=1;i<=9;i++) sum += parseInt(cpf.substring(i-1,i)) * (11-i);
+    rest = (sum*10)%11;
+    if(rest===10||rest===11) rest=0;
+    if(rest!==parseInt(cpf.substring(9,10))) return false;
+    sum = 0;
+    for(let i=1;i<=10;i++) sum += parseInt(cpf.substring(i-1,i)) * (12-i);
+    rest = (sum*10)%11;
+    if(rest===10||rest===11) rest=0;
+    if(rest!==parseInt(cpf.substring(10,11))) return false;
+    return true;
 }
 
-// Logger utility
+// =====================
+// LOGGER
+// =====================
 const Logger = {
-    log: (message, data = null) => {
-        if (APP_CONFIG.LOG_ENABLED) {
-            console.log(`[${new Date().toISOString()}] ${message}`, data || '');
-        }
-    },
-    error: (message, error = null) => {
-        console.error(`[ERROR] ${message}`, error || '');
-    },
-    warn: (message, data = null) => {
-        console.warn(`[WARN] ${message}`, data || '');
-    },
-    debug: (message, data = null) => {
-        if (APP_CONFIG.DEBUG_MODE) {
-            console.debug(`[DEBUG] ${message}`, data || '');
-        }
-    },
+    log: (msg, data=null) => { if(APP_CONFIG.LOG_ENABLED) console.log(`[${new Date().toISOString()}] ${msg}`, data || ''); },
+    error: (msg, err=null) => { console.error(`[ERROR] ${msg}`, err || ''); },
+    warn: (msg, data=null) => { console.warn(`[WARN] ${msg}`, data || ''); },
+    debug: (msg, data=null) => { if(APP_CONFIG.DEBUG_MODE) console.debug(`[DEBUG] ${msg}`, data || ''); },
 };
 
-// Export for use in modules (if using ES6 modules)
-// export { SUPABASE_CONFIG, CLOUDINARY_CONFIG, API_CONFIG, APP_CONFIG, Logger };
+// =====================
+// EXPORT (ES6 Modules - opcional)
+// =====================
+// export { SUPABASE_CONFIG, CLOUDINARY_CONFIG, API_CONFIG, APP_CONFIG, IMAGE_CONFIG, STATUS_CONFIG, Logger, getStatusLabel, getStatusColor, getImageTypeLabel, formatCurrency, formatDate, formatDateTime, generateOSNumber, validateEmail, validatePhone, validateCPF };

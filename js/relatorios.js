@@ -105,16 +105,9 @@ async function loadServicesTable(orders) {
 
         // Group by service type
         const serviceMap = {};
-
         orders.forEach((ordem) => {
             const service = ordem.services_performed || 'Não especificado';
-            if (!serviceMap[service]) {
-                serviceMap[service] = {
-                    name: service,
-                    count: 0,
-                    total: 0,
-                };
-            }
+            if (!serviceMap[service]) serviceMap[service] = { name: service, count: 0, total: 0 };
             serviceMap[service].count += 1;
             serviceMap[service].total += ordem.service_value || 0;
         });
@@ -149,48 +142,28 @@ function initCharts(orders) {
         // Daily Revenue Chart
         const dailyRevenueCtx = document.getElementById('dailyRevenueChart');
         if (dailyRevenueCtx) {
-            // Group by day
             const dailyMap = {};
             orders.forEach((o) => {
                 const date = new Date(o.date_received).toLocaleDateString('pt-BR');
-                if (!dailyMap[date]) {
-                    dailyMap[date] = 0;
-                }
+                if (!dailyMap[date]) dailyMap[date] = 0;
                 dailyMap[date] += o.service_value || 0;
             });
 
             const labels = Object.keys(dailyMap).sort();
             const data = labels.map((label) => dailyMap[label]);
 
-            if (dailyRevenueChart) {
-                dailyRevenueChart.destroy();
-            }
+            if (dailyRevenueChart) dailyRevenueChart.destroy();
 
             dailyRevenueChart = new Chart(dailyRevenueCtx, {
                 type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Faturamento Diário (R$)',
-                            data: data,
-                            backgroundColor: '#1e3a8a',
-                            borderColor: '#1e40af',
-                            borderWidth: 1,
-                        },
-                    ],
-                },
+                data: { labels, datasets: [{ label: 'Faturamento Diário (R$)', data, backgroundColor: '#1e3a8a', borderColor: '#1e40af', borderWidth: 1 }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                callback: (value) => {
-                                    return 'R$ ' + value.toLocaleString('pt-BR');
-                                },
-                            },
+                            ticks: { callback: (value) => 'R$ ' + value.toLocaleString('pt-BR') },
                         },
                     },
                 },
@@ -203,46 +176,22 @@ function initCharts(orders) {
             const serviceMap = {};
             orders.forEach((o) => {
                 const service = o.services_performed || 'Não especificado';
-                if (!serviceMap[service]) {
-                    serviceMap[service] = 0;
-                }
+                if (!serviceMap[service]) serviceMap[service] = 0;
                 serviceMap[service] += 1;
             });
 
             const labels = Object.keys(serviceMap);
             const data = Object.values(serviceMap);
 
-            if (servicesChart) {
-                servicesChart.destroy();
-            }
+            if (servicesChart) servicesChart.destroy();
 
             servicesChart = new Chart(servicesCtx, {
                 type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            data: data,
-                            backgroundColor: [
-                                '#1e3a8a',
-                                '#3b82f6',
-                                '#60a5fa',
-                                '#93c5fd',
-                                '#dbeafe',
-                                '#fef3c7',
-                                '#fecaca',
-                            ],
-                        },
-                    ],
-                },
+                data: { labels, datasets: [{ data, backgroundColor: ['#1e3a8a','#3b82f6','#60a5fa','#93c5fd','#dbeafe','#fef3c7','#fecaca'] }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                    },
+                    plugins: { legend: { position: 'bottom' } },
                 },
             });
         }
@@ -254,23 +203,14 @@ function initCharts(orders) {
 }
 
 function setupEventListeners() {
-    // Apply filters button
     const applyFiltersBtn = document.getElementById('applyFiltersBtn');
-    if (applyFiltersBtn) {
-        applyFiltersBtn.addEventListener('click', loadReports);
-    }
+    if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', loadReports);
 
-    // Export button
     const exportBtn = document.getElementById('exportBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportReports);
-    }
+    if (exportBtn) exportBtn.addEventListener('click', exportReports);
 
-    // Month input change
     const filterMonth = document.getElementById('filterMonth');
-    if (filterMonth) {
-        filterMonth.addEventListener('change', loadReports);
-    }
+    if (filterMonth) filterMonth.addEventListener('change', loadReports);
 }
 
 async function exportReports() {
@@ -281,13 +221,11 @@ async function exportReports() {
         const ordensServico = await db.getOrdensServico();
         const clientes = await db.getClientes();
 
-        // Filter orders by month
         const filteredOrders = ordensServico.filter((o) => {
             const orderDate = new Date(o.date_received);
             return orderDate.getFullYear() === parseInt(year) && orderDate.getMonth() === parseInt(month) - 1;
         });
 
-        // Prepare data for export
         const exportData = filteredOrders.map((o) => {
             const cliente = clientes.find((c) => c.id === o.client_id);
             return {
@@ -299,14 +237,11 @@ async function exportReports() {
             };
         });
 
-        // Create workbook and export
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
 
-        // Format currency column
         ws['E1'].numFmt = '"R$ "#,##0.00';
-
         XLSX.writeFile(wb, `Relatorio-${monthInput}.xlsx`);
 
         alert('Relatório exportado com sucesso!');

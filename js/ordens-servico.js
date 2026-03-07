@@ -1,5 +1,5 @@
 // ============================================
-// ORDENS DE SERVIÇO MODULE
+// ORDENS DE SERVIÇO MODULE - TOTAL SUPABASE
 // ============================================
 
 let currentOrderId = null;
@@ -12,9 +12,9 @@ async function initOrdensServicoPage() {
         Logger.log('Initializing ordens de serviço page');
 
         // Load data
-        await loadOrdensServico();
         await loadClientes();
         await loadEquipamentos();
+        await loadOrdensServico();
 
         // Setup event listeners
         setupEventListeners();
@@ -22,9 +22,8 @@ async function initOrdensServicoPage() {
         // Check URL params for order ID
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('id');
-        if (orderId) {
-            viewOrderDetails(orderId);
-        }
+        if (orderId) viewOrderDetails(orderId);
+
     } catch (error) {
         Logger.error('Error initializing ordens de serviço page', error);
     }
@@ -43,21 +42,16 @@ async function loadOrdensServico() {
 async function loadClientes() {
     try {
         allClientes = await db.getClientes();
-
-        // Populate select
         const clientSelect = document.getElementById('orderClient');
-        if (clientSelect) {
-            clientSelect.innerHTML = '<option value="">Selecione um cliente</option>';
-            allClientes.forEach((cliente) => {
-                const option = document.createElement('option');
-                option.value = cliente.id;
-                option.textContent = cliente.name;
-                clientSelect.appendChild(option);
-            });
-
-            // Update equipment list when client changes
-            clientSelect.addEventListener('change', updateEquipmentList);
-        }
+        if (!clientSelect) return;
+        clientSelect.innerHTML = '<option value="">Selecione um cliente</option>';
+        allClientes.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id;
+            option.textContent = c.name;
+            clientSelect.appendChild(option);
+        });
+        clientSelect.addEventListener('change', updateEquipmentList);
     } catch (error) {
         Logger.error('Error loading clientes', error);
     }
@@ -74,15 +68,14 @@ async function loadEquipamentos() {
 function renderOrdensTable(ordens) {
     const tableBody = document.getElementById('ordersTable');
     tableBody.innerHTML = '';
-
-    if (ordens.length === 0) {
+    if (!ordens || ordens.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhuma ordem de serviço registrada</td></tr>';
         return;
     }
 
-    ordens.forEach((ordem) => {
-        const cliente = allClientes.find((c) => c.id === ordem.client_id);
-        const equipamento = allEquipamentos.find((e) => e.id === ordem.equipment_id);
+    ordens.forEach(ordem => {
+        const cliente = allClientes.find(c => c.id === ordem.client_id);
+        const equipamento = allEquipamentos.find(e => e.id === ordem.equipment_id);
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${ordem.os_number}</td>
@@ -101,85 +94,55 @@ function renderOrdensTable(ordens) {
 }
 
 function setupEventListeners() {
-    // New order button
     const newOrderBtn = document.getElementById('newOrderBtn');
-    if (newOrderBtn) {
-        newOrderBtn.addEventListener('click', openNewOrderModal);
-    }
+    if (newOrderBtn) newOrderBtn.addEventListener('click', openNewOrderModal);
 
-    // Search input
     const searchInput = document.getElementById('searchOrders');
-    if (searchInput) {
-        searchInput.addEventListener('input', filterOrders);
-    }
-
-    // Status filter
     const filterStatus = document.getElementById('filterStatus');
-    if (filterStatus) {
-        filterStatus.addEventListener('change', filterOrders);
-    }
+    if (searchInput) searchInput.addEventListener('input', filterOrders);
+    if (filterStatus) filterStatus.addEventListener('change', filterOrders);
 
-    // Modal close buttons
-    const closeOrderModal = document.getElementById('closeOrderModal');
-    const cancelOrderBtn = document.getElementById('cancelOrderBtn');
-    const closeDetailsModal = document.getElementById('closeDetailsModal');
-    const closeDetailsBtn = document.getElementById('closeDetailsBtn');
+    ['closeOrderModal','cancelOrderBtn','closeDetailsModal','closeDetailsBtn'].forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem) elem.addEventListener('click', closeModal);
+    });
 
-    if (closeOrderModal) closeOrderModal.addEventListener('click', closeModal);
-    if (cancelOrderBtn) cancelOrderBtn.addEventListener('click', closeModal);
-    if (closeDetailsModal) closeDetailsModal.addEventListener('click', closeModal);
-    if (closeDetailsBtn) closeDetailsBtn.addEventListener('click', closeModal);
-
-    // Form submission
     const orderForm = document.getElementById('orderForm');
-    if (orderForm) {
-        orderForm.addEventListener('submit', saveOrdenServico);
-    }
+    if (orderForm) orderForm.addEventListener('submit', saveOrdenServico);
 
-    // Edit button in details modal
     const editOrderBtn = document.getElementById('editOrderBtn');
-    if (editOrderBtn) {
-        editOrderBtn.addEventListener('click', () => {
-            document.getElementById('orderDetailsModal').classList.add('hidden');
-            openEditOrderModal(currentOrderId);
-        });
-    }
+    if (editOrderBtn) editOrderBtn.addEventListener('click', () => {
+        document.getElementById('orderDetailsModal').classList.add('hidden');
+        openEditOrderModal(currentOrderId);
+    });
 
-    // Generate PDF button
     const generatePdfBtn = document.getElementById('generatePdfBtn');
-    if (generatePdfBtn) {
-        generatePdfBtn.addEventListener('click', generateOrderPDF);
-    }
+    if (generatePdfBtn) generatePdfBtn.addEventListener('click', generateOrderPDF);
 }
 
 function updateEquipmentList() {
     const clientId = document.getElementById('orderClient').value;
     const equipmentSelect = document.getElementById('orderEquipment');
-
     equipmentSelect.innerHTML = '<option value="">Selecione um equipamento</option>';
-
-    if (clientId) {
-        const clientEquipments = allEquipamentos.filter((e) => e.client_id === clientId);
-        clientEquipments.forEach((equip) => {
-            const option = document.createElement('option');
-            option.value = equip.id;
-            option.textContent = `${equip.brand} ${equip.model} (${equip.serial_number})`;
-            equipmentSelect.appendChild(option);
-        });
-    }
+    if (!clientId) return;
+    const clientEquipments = allEquipamentos.filter(e => e.client_id === clientId);
+    clientEquipments.forEach(equip => {
+        const option = document.createElement('option');
+        option.value = equip.id;
+        option.textContent = `${equip.brand} ${equip.model} (${equip.serial_number})`;
+        equipmentSelect.appendChild(option);
+    });
 }
 
 function filterOrders() {
     const searchTerm = document.getElementById('searchOrders').value.toLowerCase();
     const statusFilter = document.getElementById('filterStatus').value;
 
-    const filtered = allOrdensServico.filter((ordem) => {
+    const filtered = allOrdensServico.filter(ordem => {
         const matchesSearch =
             ordem.os_number.toLowerCase().includes(searchTerm) ||
-            allClientes.find((c) => c.id === ordem.client_id)?.name.toLowerCase().includes(searchTerm);
-
+            allClientes.find(c => c.id === ordem.client_id)?.name.toLowerCase().includes(searchTerm);
         const matchesStatus = !statusFilter || ordem.status === statusFilter;
-
         return matchesSearch && matchesStatus;
     });
 
@@ -197,8 +160,7 @@ function openNewOrderModal() {
 
 function openEditOrderModal(ordemId) {
     currentOrderId = ordemId;
-    const ordem = allOrdensServico.find((o) => o.id === ordemId);
-
+    const ordem = allOrdensServico.find(o => o.id === ordemId);
     if (!ordem) return;
 
     document.getElementById('orderId').value = ordem.id;
@@ -219,7 +181,6 @@ function openEditOrderModal(ordemId) {
 
 async function saveOrdenServico(e) {
     e.preventDefault();
-
     const orderId = document.getElementById('orderId').value;
     const ordemData = {
         client_id: document.getElementById('orderClient').value,
@@ -230,38 +191,31 @@ async function saveOrdenServico(e) {
         technical_diagnosis: document.getElementById('orderDiagnosis').value,
         services_performed: document.getElementById('orderServices').value,
         service_value: parseFloat(document.getElementById('orderValue').value) || 0,
-        technician_responsible: document.getElementById('orderTechnician').value,
+        technician_responsible: document.getElementById('orderTechnician').value
     };
 
     try {
-        if (orderId) {
-            // Update existing
-            await db.updateOrdenServico(orderId, ordemData);
-            alert('Ordem de serviço atualizada com sucesso!');
-        } else {
-            // Create new
-            await db.createOrdenServico(ordemData);
-            alert('Ordem de serviço criada com sucesso!');
-        }
+        if (orderId) await db.updateOrdenServico(orderId, ordemData);
+        else await db.createOrdenServico(ordemData);
 
+        alert(orderId ? 'Ordem de serviço atualizada!' : 'Ordem de serviço criada!');
         closeModal();
         await loadOrdensServico();
     } catch (error) {
-        alert('Erro ao salvar ordem de serviço: ' + error.message);
         Logger.error('Error saving ordem de serviço', error);
+        alert('Erro ao salvar ordem de serviço: ' + error.message);
     }
 }
 
 async function deleteOrdenServico(ordemId) {
     if (!confirm('Tem certeza que deseja deletar esta ordem de serviço?')) return;
-
     try {
         await db.deleteOrdenServico(ordemId);
-        alert('Ordem de serviço deletada com sucesso!');
+        alert('Ordem de serviço deletada!');
         await loadOrdensServico();
     } catch (error) {
-        alert('Erro ao deletar ordem de serviço: ' + error.message);
         Logger.error('Error deleting ordem de serviço', error);
+        alert('Erro ao deletar ordem de serviço: ' + error.message);
     }
 }
 
@@ -275,7 +229,6 @@ async function viewOrderDetails(ordemId) {
 
         currentOrderId = ordemId;
 
-        // Populate details modal
         document.getElementById('detailsTitle').textContent = `Ordem de Serviço ${ordem.os_number}`;
         document.getElementById('detailNumber').textContent = ordem.os_number;
         document.getElementById('detailClient').textContent = cliente?.name || 'N/A';
@@ -288,50 +241,36 @@ async function viewOrderDetails(ordemId) {
         document.getElementById('detailServices').textContent = ordem.services_performed || 'N/A';
         document.getElementById('detailValue').textContent = formatCurrency(ordem.service_value);
 
-        // Load gallery
         const gallery = document.getElementById('orderGallery');
-        gallery.innerHTML = '';
+        gallery.innerHTML = imagens.length === 0 ? '<p class="text-center">Nenhuma imagem registrada</p>' : '';
+        imagens.forEach(img => {
+            const item = document.createElement('div');
+            item.className = 'image-gallery-item';
+            item.innerHTML = `<img src="${img.url_imagem}" alt="${img.tipo_imagem}">`;
+            item.addEventListener('click', () => window.open(img.url_imagem, '_blank'));
+            gallery.appendChild(item);
+        });
 
-        if (imagens.length === 0) {
-            gallery.innerHTML = '<p class="text-center">Nenhuma imagem registrada</p>';
-        } else {
-            imagens.forEach((img) => {
-                const item = document.createElement('div');
-                item.className = 'image-gallery-item';
-                item.innerHTML = `<img src="${img.url_imagem}" alt="${img.tipo_imagem}">`;
-                item.addEventListener('click', () => {
-                    window.open(img.url_imagem, '_blank');
-                });
-                gallery.appendChild(item);
-            });
-        }
-
-        // Load timeline
         const timeline = document.getElementById('orderTimeline');
-        timeline.innerHTML = '';
-
-        if (historico.length === 0) {
-            timeline.innerHTML = '<p class="text-center">Nenhum histórico registrado</p>';
-        } else {
-            historico.forEach((item, index) => {
-                const timelineItem = document.createElement('div');
-                timelineItem.className = 'timeline-item';
-                timelineItem.innerHTML = `
-                    <div class="timeline-marker">${index + 1}</div>
-                    <div class="timeline-content">
-                        <h4>${getStatusLabel(item.novo_status)}</h4>
-                        <p>${item.descricao}</p>
-                        <p class="timestamp">${formatDateTime(item.created_at)} - ${item.tecnico_responsavel}</p>
-                    </div>
-                `;
-                timeline.appendChild(timelineItem);
-            });
-        }
+        timeline.innerHTML = historico.length === 0 ? '<p class="text-center">Nenhum histórico registrado</p>' : '';
+        historico.forEach((item, i) => {
+            const timelineItem = document.createElement('div');
+            timelineItem.className = 'timeline-item';
+            timelineItem.innerHTML = `
+                <div class="timeline-marker">${i+1}</div>
+                <div class="timeline-content">
+                    <h4>${getStatusLabel(item.novo_status)}</h4>
+                    <p>${item.descricao}</p>
+                    <p class="timestamp">${formatDateTime(item.created_at)} - ${item.tecnico_responsavel}</p>
+                </div>
+            `;
+            timeline.appendChild(timelineItem);
+        });
 
         document.getElementById('orderDetailsModal').classList.remove('hidden');
     } catch (error) {
-        alert('Erro ao carregar detalhes da ordem: ' + error.message);
         Logger.error('Error loading order details', error);
+        alert('Erro ao carregar detalhes da ordem: ' + error.message);
     }
 }
 
@@ -345,8 +284,8 @@ async function generateOrderPDF() {
         await pdfGenerator.generateOrderPDF(ordem, cliente, equipamento, imagens);
         alert('PDF gerado com sucesso!');
     } catch (error) {
-        alert('Erro ao gerar PDF: ' + error.message);
         Logger.error('Error generating PDF', error);
+        alert('Erro ao gerar PDF: ' + error.message);
     }
 }
 
@@ -355,9 +294,6 @@ function closeModal() {
     document.getElementById('orderDetailsModal').classList.add('hidden');
 }
 
-// Initialize page
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('ordersTable')) {
-        initOrdensServicoPage();
-    }
+    if (document.getElementById('ordersTable')) initOrdensServicoPage();
 });

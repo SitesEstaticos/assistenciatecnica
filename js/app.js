@@ -91,9 +91,20 @@ function handleLoginForm() {
 
             await auth.login(email, password);
 
-            showNotification("Login realizado com sucesso", "success");
+            // Esperar sincronização da sessão
+            await new Promise(resolve => setTimeout(resolve, 300));
 
-            window.location.href = "dashboard.html";
+            if (auth.isLoggedIn()) {
+
+                showNotification("Login realizado com sucesso", "success");
+
+                window.location.href = "dashboard.html";
+
+            } else {
+
+                throw new Error("Falha ao validar sessão.");
+
+            }
 
         } catch (error) {
 

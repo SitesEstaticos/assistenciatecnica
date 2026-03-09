@@ -24,7 +24,7 @@ const CLOUDINARY_CONFIG = {
 // API CONFIGURATION
 // =====================
 const API_CONFIG = {
-    TIMEOUT: 10000, // 10 segundos
+    TIMEOUT: 5000, // 5 segundos
     RETRY_ATTEMPTS: 3,
     RETRY_DELAY: 1000, // 1 segundo
 };

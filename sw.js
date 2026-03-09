@@ -2,13 +2,12 @@
 // SERVICE WORKER
 // ============================================
 
-const CACHE_NAME = 'assistencia-tecnica-v2';
+const CACHE_NAME = 'assistencia-tecnica-v3';
 
 // Detecta automaticamente a pasta do projeto
 const BASE_PATH = self.location.pathname.replace('sw.js', '');
 
 const ASSETS_TO_CACHE = [
-    BASE_PATH,
     BASE_PATH + 'index.html',
     BASE_PATH + 'dashboard.html',
     BASE_PATH + 'clientes.html',
@@ -17,21 +16,7 @@ const ASSETS_TO_CACHE = [
     BASE_PATH + 'estoque.html',
     BASE_PATH + 'relatorios.html',
     BASE_PATH + 'manifest.json',
-
-    BASE_PATH + 'css/styles.css',
-
-    BASE_PATH + 'js/config.js',
-    BASE_PATH + 'js/auth.js',
-    BASE_PATH + 'js/db.js',
-    BASE_PATH + 'js/cloudinary.js',
-    BASE_PATH + 'js/pdf-generator.js',
-    BASE_PATH + 'js/dashboard.js',
-    BASE_PATH + 'js/clientes.js',
-    BASE_PATH + 'js/equipamentos.js',
-    BASE_PATH + 'js/ordens-servico.js',
-    BASE_PATH + 'js/estoque.js',
-    BASE_PATH + 'js/relatorios.js',
-    BASE_PATH + 'js/app.js'
+    BASE_PATH + 'css/styles.css'
 ];
 
 // ============================
@@ -99,8 +84,10 @@ self.addEventListener('fetch', (event) => {
 
                 return fetch(request).then((networkResponse) => {
 
+                    const responseClone = networkResponse.clone();
+
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, networkResponse.clone());
+                        cache.put(request, responseClone);
                     });
 
                     return networkResponse;
@@ -119,28 +106,23 @@ self.addEventListener('fetch', (event) => {
 
         event.respondWith(
 
-            fetch(request)
+            caches.match(request).then((cached) => {
 
-                .then((networkResponse) => {
+                if (cached) return cached;
 
-                    if (networkResponse && networkResponse.status === 200) {
+                return fetch(request).then((networkResponse) => {
 
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, networkResponse.clone());
-                        });
+                    const responseClone = networkResponse.clone();
 
-                    }
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, responseClone);
+                    });
 
                     return networkResponse;
 
-                })
+                });
 
-                .catch(() => {
-
-                    return caches.match(request)
-                        .then((cached) => cached || caches.match(BASE_PATH + 'index.html'));
-
-                })
+            })
 
         );
 

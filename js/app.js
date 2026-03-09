@@ -145,7 +145,7 @@ function checkProtectedPages() {
 
     if (protectedPages.includes(currentPage)) {
 
-        if (!auth || !auth.isLoggedIn()) {
+        if (!window.auth || !window.auth.isLoggedIn()) {
 
             Logger.log("Usuário não autenticado, redirecionando.");
 

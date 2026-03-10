@@ -294,7 +294,22 @@ class DatabaseManager {
         return true;
     }
 
+    async getOrderStatusCounts() {
 
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('status');
+
+        if (error) throw error;
+
+        const counts = {};
+
+        data.forEach(ordem => {
+            counts[ordem.status] = (counts[ordem.status] || 0) + 1;
+        });
+
+        return counts;
+    }
     // ============================================
     // PEÇAS
     // ============================================

@@ -45,11 +45,7 @@ class DatabaseManager {
     async createCliente(cliente) {
 
         const payload = {
-            nome: cliente.nome,
-            telefone: cliente.telefone,
-            email: cliente.email,
-            endereco: cliente.endereco,
-            observacoes: cliente.observacoes,
+            ...cliente,
             criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
         };
@@ -67,18 +63,11 @@ class DatabaseManager {
 
     async updateCliente(id, updates = {}) {
 
-        const payload = {
-            nome: updates.nome,
-            telefone: updates.telefone,
-            email: updates.email,
-            endereco: updates.endereco,
-            observacoes: updates.observacoes,
-            atualizado_em: new Date().toISOString()
-        };
+        updates.atualizado_em = new Date().toISOString();
 
         const { data, error } = await this.supabase
             .from('clientes')
-            .update(payload)
+            .update(updates)
             .eq('id', id)
             .select()
             .single();
@@ -145,14 +134,7 @@ class DatabaseManager {
     async createEquipamento(equipamento) {
 
         const payload = {
-            cliente_id: equipamento.cliente_id,
-            marca: equipamento.marca,
-            modelo: equipamento.modelo,
-            numero_serie: equipamento.numero_serie,
-            acessorios_entregues: equipamento.acessorios_entregues,
-            estado_fisico: equipamento.estado_fisico,
-            senha_equipamento: equipamento.senha_equipamento,
-            observacoes: equipamento.observacoes,
+            ...equipamento,
             criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
         };
@@ -170,21 +152,11 @@ class DatabaseManager {
 
     async updateEquipamento(id, updates = {}) {
 
-        const payload = {
-            cliente_id: updates.cliente_id,
-            marca: updates.marca,
-            modelo: updates.modelo,
-            numero_serie: updates.numero_serie,
-            acessorios_entregues: updates.acessorios_entregues,
-            estado_fisico: updates.estado_fisico,
-            senha_equipamento: updates.senha_equipamento,
-            observacoes: updates.observacoes,
-            atualizado_em: new Date().toISOString()
-        };
+        updates.atualizado_em = new Date().toISOString();
 
         const { data, error } = await this.supabase
             .from('equipamentos')
-            .update(payload)
+            .update(updates)
             .eq('id', id)
             .select()
             .single();
@@ -242,15 +214,7 @@ class DatabaseManager {
 
         const payload = {
             numero_os: numeroOS,
-            cliente_id: ordem.cliente_id,
-            equipamento_id: ordem.equipamento_id,
-            problema_relatado: ordem.problema_relatado,
-            diagnostico_tecnico: ordem.diagnostico_tecnico,
-            solucao_aplicada: ordem.solucao_aplicada,
-            status: ordem.status,
-            valor_servico: ordem.valor_servico,
-            data_recebimento: ordem.data_recebimento,
-            data_entrega: ordem.data_entrega,
+            ...ordem,
             criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
         };
@@ -294,24 +258,9 @@ class DatabaseManager {
         return true;
     }
 
-    async getOrderStatusCounts() {
 
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('status');
-
-        if (error) throw error;
-
-        const counts = {};
-
-        data.forEach(ordem => {
-            counts[ordem.status] = (counts[ordem.status] || 0) + 1;
-        });
-
-        return counts;
-    }
     // ============================================
-    // PEÇAS
+    // PEÇAS / ESTOQUE
     // ============================================
 
     async getPecas() {
@@ -342,10 +291,7 @@ class DatabaseManager {
     async createPeca(peca) {
 
         const payload = {
-            nome: peca.nome,
-            descricao: peca.descricao,
-            preco_custo: peca.preco_custo,
-            preco_venda: peca.preco_venda,
+            ...peca,
             criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
         };
@@ -387,6 +333,125 @@ class DatabaseManager {
         if (error) throw error;
 
         return true;
+    }
+
+
+    // ============================================
+    // DASHBOARD
+    // ============================================
+
+    async getStatistics() {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('status, valor_servico');
+
+        if (error) throw error;
+
+        let osAbertas = 0;
+        let osManutencao = 0;
+        let osFinalizadas = 0;
+        let faturamento = 0;
+
+        (data || []).forEach(o => {
+
+            if (o.status === 'recebido') osAbertas++;
+
+            if (
+                o.status === 'em_analise' ||
+                o.status === 'aguardando_peca' ||
+                o.status === 'manutencao'
+            ) osManutencao++;
+
+            if (
+                o.status === 'finalizado' ||
+                o.status === 'entregue'
+            ) {
+
+                osFinalizadas++;
+
+                faturamento += parseFloat(o.valor_servico) || 0;
+
+            }
+
+        });
+
+        return {
+            osAbertas,
+            osManutencao,
+            osFinalizadas,
+            faturamento
+        };
+    }
+
+
+    // ============================================
+    // STATUS DAS ORDENS
+    // ============================================
+
+    async getOrderStatusCounts() {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('status');
+
+        if (error) throw error;
+
+        const counts = {
+            recebido: 0,
+            em_analise: 0,
+            aguardando_peca: 0,
+            manutencao: 0,
+            finalizado: 0,
+            entregue: 0
+        };
+
+        (data || []).forEach(o => {
+
+            if (counts[o.status] !== undefined) {
+
+                counts[o.status]++;
+
+            }
+
+        });
+
+        return counts;
+    }
+
+
+    // ============================================
+    // FATURAMENTO MENSAL
+    // ============================================
+
+    async getMonthlyRevenue() {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('valor_servico, data_recebimento')
+            .in('status', ['finalizado', 'entregue']);
+
+        if (error) throw error;
+
+        const months = {
+            jan: 0, fev: 0, mar: 0, abr: 0,
+            mai: 0, jun: 0, jul: 0, ago: 0,
+            set: 0, out: 0, nov: 0, dez: 0
+        };
+
+        const keys = Object.keys(months);
+
+        (data || []).forEach(o => {
+
+            const month = new Date(o.data_recebimento).getMonth();
+
+            const key = keys[month];
+
+            months[key] += parseFloat(o.valor_servico) || 0;
+
+        });
+
+        return months;
     }
 
 }

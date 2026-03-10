@@ -255,7 +255,81 @@ class DatabaseManager {
 
         return true;
     }
+    // ============================================
+    // PEÇAS / ESTOQUE
+    // ============================================
 
+    async getPecas() {
+
+        const { data, error } = await this.supabase
+            .from('pecas')
+            .select('*')
+            .order('nome', { ascending: true });
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async getPecaById(id) {
+
+        const { data, error } = await this.supabase
+            .from('pecas')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async createPeca(peca) {
+
+        const payload = {
+            ...peca,
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+        };
+
+        const { data, error } = await this.supabase
+            .from('pecas')
+            .insert(payload)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async updatePeca(id, updates) {
+
+        updates.atualizado_em = new Date().toISOString();
+
+        const { data, error } = await this.supabase
+            .from('pecas')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async deletePeca(id) {
+
+        const { error } = await this.supabase
+            .from('pecas')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return true;
+    }
 
     // ============================================
     // DASHBOARD
@@ -350,9 +424,9 @@ class DatabaseManager {
         if (error) throw error;
 
         const months = {
-            jan:0, fev:0, mar:0, abr:0,
-            mai:0, jun:0, jul:0, ago:0,
-            set:0, out:0, nov:0, dez:0
+            jan: 0, fev: 0, mar: 0, abr: 0,
+            mai: 0, jun: 0, jul: 0, ago: 0,
+            set: 0, out: 0, nov: 0, dez: 0
         };
 
         const keys = Object.keys(months);

@@ -243,6 +243,65 @@ class DatabaseManager {
 
         return data;
     }
+    // ============================================
+    // DASHBOARD / ESTATÍSTICAS
+    // ============================================
+
+    async getStatistics() {
+        try {
+
+            const { count: clientes } = await this.supabase
+                .from('clientes')
+                .select('*', { count: 'exact', head: true });
+
+            const { count: equipamentos } = await this.supabase
+                .from('equipamentos')
+                .select('*', { count: 'exact', head: true });
+
+            const { count: ordens } = await this.supabase
+                .from('ordens_servico')
+                .select('*', { count: 'exact', head: true });
+
+            const { count: finalizadas } = await this.supabase
+                .from('ordens_servico')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'finalizado');
+
+            return {
+                clientes: clientes || 0,
+                equipamentos: equipamentos || 0,
+                ordens: ordens || 0,
+                finalizadas: finalizadas || 0
+            };
+
+        } catch (error) {
+            Logger.error('Error loading statistics', error);
+            throw error;
+        }
+    }
+
+    async getOrderStatusCounts() {
+        try {
+
+            const { data, error } = await this.supabase
+                .from('ordens_servico')
+                .select('status');
+
+            if (error) throw error;
+
+            const counts = {};
+
+            data.forEach(o => {
+                counts[o.status] = (counts[o.status] || 0) + 1;
+            });
+
+            return counts;
+
+        } catch (error) {
+            Logger.error('Error getting order status counts', error);
+            throw error;
+        }
+    }
 }
 
 // ============================================

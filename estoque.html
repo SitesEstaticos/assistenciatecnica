@@ -240,12 +240,13 @@
             </div>
         </div>
     </div>
-    <script src="https://esm.sh/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script> <!-- Configurações e Logger -->
-    <script src="js/auth.js"></script> <!-- Depende de config.js -->
-    <script src="js/db.js"></script> <!-- Depende de supabase e Logger -->
-    <script src="js/estoque.js"></script>
-    <script src="js/app.js"></script> <!-- Inicializações globais -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+    <script src="js/config.js"></script> <!-- Logger e configurações -->
+    <script src="js/auth.js"></script> <!-- depende de config -->
+    <script src="js/db.js"></script> <!-- depende de supabase -->
+    <script src="js/app.js"></script> <!-- inicialização global -->
+    <script src="js/estoque.js"></script> <!-- lógica da página -->
 </body>
 
 </html>

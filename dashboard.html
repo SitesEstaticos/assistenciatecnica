@@ -154,12 +154,12 @@
             </div>
         </main>
     </div>
-    <script src="https://esm.sh/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script> <!-- Logger e configs gerais -->
-    <script src="js/auth.js"></script> <!-- usa Logger e config -->
-    <script src="js/db.js"></script> <!-- depende de supabase e Logger -->
-    <script src="js/dashboard.js"></script>
-    <script src="js/app.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/config.js"></script> <!-- Logger e configs -->
+    <script src="js/auth.js"></script> <!-- depende de config -->
+    <script src="js/db.js"></script> <!-- depende de supabase -->
+    <script src="js/app.js"></script> <!-- inicialização global -->
+    <script src="js/dashboard.js"></script> <!-- lógica da página -->
 </body>
 
 </html>

@@ -275,16 +275,16 @@
             </div>
         </div>
     </div>
-    <script src="https://esm.sh/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Biblioteca PDF -->
-    <script src="js/config.js"></script> <!-- Configurações globais e Logger -->
-    <script src="js/auth.js"></script> <!-- Depende de config.js -->
-    <script src="js/db.js"></script> <!-- Depende de config.js e supabase -->
-    <script src="js/cloudinary.js"></script> <!-- Pode depender do config.js se usar Logger -->
-    <script src="js/pdf-generator.js"></script> <!-- Pode depender de Logger/config.js -->
-    <script src="js/ordens-servico.js"></script> <!-- Funcionalidades da página -->
-    <script src="js/app.js"></script> <!-- Inicialização geral -->
+    <script src="js/config.js"></script> <!-- Logger e configurações -->
+    <script src="js/auth.js"></script> <!-- autenticação -->
+    <script src="js/db.js"></script> <!-- acesso ao banco -->
+    <script src="js/cloudinary.js"></script> <!-- upload de imagens -->
+    <script src="js/pdf-generator.js"></script> <!-- geração de PDF -->
+    <script src="js/app.js"></script> <!-- inicialização global -->
+    <script src="js/ordens-servico.js"></script> <!-- lógica da página -->
 </body>
 
 </html>

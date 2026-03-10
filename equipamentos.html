@@ -231,13 +231,13 @@
             </div>
         </div>
     </div>
-    <script src="https://esm.sh/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script> <!-- Configurações gerais e Logger -->
-    <script src="js/auth.js"></script> <!-- Depende de config.js -->
-    <script src="js/db.js"></script> <!-- Depende de supabase e Logger -->
-    <script src="js/cloudinary.js"></script> <!-- Depende de CLOUDINARY_CONFIG -->
-    <script src="js/equipamentos.js"></script>
-    <script src="js/app.js"></script> <!-- Inicializações globais -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/config.js"></script> <!-- Logger e configs -->
+    <script src="js/auth.js"></script> <!-- depende de config -->
+    <script src="js/db.js"></script> <!-- usa supabaseClient -->
+    <script src="js/cloudinary.js"></script> <!-- configs do Cloudinary -->
+    <script src="js/app.js"></script> <!-- inicialização global -->
+    <script src="js/equipamentos.js"></script> <!-- lógica da página -->
 </body>
 
 </html>

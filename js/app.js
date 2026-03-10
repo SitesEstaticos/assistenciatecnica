@@ -32,17 +32,12 @@ window.addEventListener('unhandledrejection', (event) => {
 
 async function waitForAuth() {
 
-    let attempts = 0;
-
-    while (!window.auth && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-    }
-
     if (!window.auth) {
         Logger.error("Auth não inicializou.");
         return false;
     }
+
+    await window.auth.ready;
 
     return true;
 }

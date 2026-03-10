@@ -28,7 +28,8 @@ class AuthManager {
         this.session = null;
         this.isAuthenticated = false;
 
-        this.init();
+        // Promise que indica quando a inicialização terminou
+        this.ready = this.init();
     }
 
     async init() {

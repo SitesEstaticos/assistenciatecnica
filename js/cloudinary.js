@@ -170,10 +170,7 @@ class CloudinaryManager {
 // CONFIGURAÇÕES
 // ============================================
 
-const CLOUDINARY_CONFIG = {
-    CLOUD_NAME: 'SEU_CLOUD_NAME',
-    UPLOAD_PRESET: 'SEU_UPLOAD_PRESET',
-};
+const CLOUDINARY_CONFIG = window.CLOUDINARY_CONFIG;
 
 const IMAGE_CONFIG = {
     MAX_WIDTH: 1600,

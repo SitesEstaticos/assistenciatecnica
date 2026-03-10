@@ -214,8 +214,7 @@ class DatabaseManager {
         const { data, error } = await this.supabase
             .from('imagens_equipamento')
             .select('*')
-            .eq('equipamento_id', equipamentoId)
-            .order('criado_em', { ascending: false });
+            .eq('equipamento_id', equipamentoId);
 
         if (error) throw error;
 

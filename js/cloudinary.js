@@ -67,7 +67,6 @@ class CloudinaryManager {
             };
 
             reader.onerror = () => reject(new Error('Falha ao ler arquivo'));
-
             reader.readAsDataURL(file);
 
         });
@@ -134,9 +133,7 @@ class CloudinaryManager {
                     });
 
                 } else {
-
                     reject(new Error('Upload falhou'));
-
                 }
 
             });
@@ -181,7 +178,6 @@ class CloudinaryManager {
     async deleteImage(publicId) {
 
         console.warn('Não é possível deletar imagens em site estático. Use o painel Cloudinary.');
-
         return true;
 
     }
@@ -231,7 +227,7 @@ class CloudinaryManager {
 
 
 // ============================================
-// CONFIGURAÇÕES GLOBAIS
+// GARANTE IMAGE_CONFIG
 // ============================================
 
 if (!window.IMAGE_CONFIG) {
@@ -246,11 +242,26 @@ if (!window.IMAGE_CONFIG) {
 
 }
 
-// cria instância global
-window.cloudinary = new CloudinaryManager(
-    window.CLOUDINARY_CONFIG,
-    window.IMAGE_CONFIG
-);
+
+// ============================================
+// INICIALIZA CLOUDINARY COM SEGURANÇA
+// ============================================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    if (!window.CLOUDINARY_CONFIG) {
+        console.error("CLOUDINARY_CONFIG não encontrado. Verifique config.js");
+        return;
+    }
+
+    window.cloudinary = new CloudinaryManager(
+        window.CLOUDINARY_CONFIG,
+        window.IMAGE_CONFIG
+    );
+
+    console.log("Cloudinary inicializado.");
+
+});
 
 
 // ============================================

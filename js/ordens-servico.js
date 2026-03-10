@@ -317,10 +317,10 @@ async function saveOrdenServico(e) {
     try {
 
         if (orderId)
-            await db.updateOrdenServico(orderId, ordemData);
+            await db.updateOrdemServico(orderId, ordemData);
 
         else
-            await db.createOrdenServico(ordemData);
+            await db.createOrdemServico(ordemData);
 
         alert(
             orderId
@@ -349,7 +349,7 @@ async function deleteOrdenServico(ordemId) {
 
     try {
 
-        await db.deleteOrdenServico(ordemId);
+        await db.deleteOrdemServico(ordemId);
 
         alert('Ordem deletada!');
 

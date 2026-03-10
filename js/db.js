@@ -302,6 +302,42 @@ class DatabaseManager {
             throw error;
         }
     }
+    // ============================================
+// RECEITA MENSAL (DASHBOARD)
+// ============================================
+
+async getMonthlyRevenue() {
+    try {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('valor, created_at')
+            .eq('status', 'finalizado');
+
+        if (error) throw error;
+
+        const months = {};
+
+        data.forEach(os => {
+
+            const date = new Date(os.created_at);
+            const key = `${date.getFullYear()}-${date.getMonth()+1}`;
+
+            if (!months[key]) {
+                months[key] = 0;
+            }
+
+            months[key] += Number(os.valor) || 0;
+
+        });
+
+        return months;
+
+    } catch (error) {
+        Logger.error('Error getting monthly revenue', error);
+        throw error;
+    }
+}
 }
 
 // ============================================

@@ -28,6 +28,21 @@ class AuthManager {
         this.session = null;
         this.isAuthenticated = false;
 
+        // Escuta mudanças de autenticação
+        this.supabase.auth.onAuthStateChange((event, session) => {
+
+            if (session) {
+                this.session = session;
+                this.user = session.user;
+                this.isAuthenticated = true;
+            } else {
+                this.clearSession();
+            }
+
+            Logger.log('Auth state changed:', event);
+
+        });
+
         // Promise que indica quando a inicialização terminou
         this.ready = this.init();
     }

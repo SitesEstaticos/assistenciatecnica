@@ -1,10 +1,15 @@
 // ============================================
-// DATABASE MODULE - SUPABASE ONLY
+// DATABASE MODULE - SUPABASE
 // ============================================
 
 class DatabaseManager {
+
     constructor(supabaseClient) {
-        if (!supabaseClient) throw new Error('Supabase client is required');
+
+        if (!supabaseClient) {
+            throw new Error('Supabase client não fornecido');
+        }
+
         this.supabase = supabaseClient;
     }
 
@@ -12,27 +17,12 @@ class DatabaseManager {
     // CLIENTES
     // ============================================
 
-    async createCliente(cliente) {
-        const newCliente = {
-            id: 'cliente_' + Date.now(),
-            ...cliente,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        };
-
-        const { data, error } = await this.supabase
-            .from('clientes')
-            .insert([newCliente]);
-
-        if (error) throw error;
-
-        return data[0];
-    }
-
     async getClientes() {
+
         const { data, error } = await this.supabase
             .from('clientes')
-            .select('*');
+            .select('*')
+            .order('criado_em', { ascending: false });
 
         if (error) throw error;
 
@@ -40,6 +30,7 @@ class DatabaseManager {
     }
 
     async getClienteById(id) {
+
         const { data, error } = await this.supabase
             .from('clientes')
             .select('*')
@@ -51,8 +42,28 @@ class DatabaseManager {
         return data;
     }
 
+    async createCliente(cliente) {
+
+        const payload = {
+            ...cliente,
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+        };
+
+        const { data, error } = await this.supabase
+            .from('clientes')
+            .insert(payload)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
     async updateCliente(id, updates) {
-        updates.updated_at = new Date().toISOString();
+
+        updates.atualizado_em = new Date().toISOString();
 
         const { data, error } = await this.supabase
             .from('clientes')
@@ -67,43 +78,28 @@ class DatabaseManager {
     }
 
     async deleteCliente(id) {
-        const { data, error } = await this.supabase
+
+        const { error } = await this.supabase
             .from('clientes')
             .delete()
-            .eq('id', id)
-            .select()
-            .single();
+            .eq('id', id);
 
         if (error) throw error;
 
-        return data;
+        return true;
     }
+
 
     // ============================================
     // EQUIPAMENTOS
     // ============================================
 
-    async createEquipamento(equipamento) {
-        const newEquip = {
-            id: 'equip_' + Date.now(),
-            ...equipamento,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        };
-
-        const { data, error } = await this.supabase
-            .from('equipamentos')
-            .insert([newEquip]);
-
-        if (error) throw error;
-
-        return data[0];
-    }
-
     async getEquipamentos() {
+
         const { data, error } = await this.supabase
             .from('equipamentos')
-            .select('*');
+            .select('*')
+            .order('criado_em', { ascending: false });
 
         if (error) throw error;
 
@@ -111,6 +107,7 @@ class DatabaseManager {
     }
 
     async getEquipamentoById(id) {
+
         const { data, error } = await this.supabase
             .from('equipamentos')
             .select('*')
@@ -123,10 +120,30 @@ class DatabaseManager {
     }
 
     async getEquipamentosByCliente(clienteId) {
+
         const { data, error } = await this.supabase
             .from('equipamentos')
             .select('*')
-            .eq('client_id', clienteId);
+            .eq('cliente_id', clienteId);
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async createEquipamento(equipamento) {
+
+        const payload = {
+            ...equipamento,
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+        };
+
+        const { data, error } = await this.supabase
+            .from('equipamentos')
+            .insert(payload)
+            .select()
+            .single();
 
         if (error) throw error;
 
@@ -134,7 +151,8 @@ class DatabaseManager {
     }
 
     async updateEquipamento(id, updates) {
-        updates.updated_at = new Date().toISOString();
+
+        updates.atualizado_em = new Date().toISOString();
 
         const { data, error } = await this.supabase
             .from('equipamentos')
@@ -149,10 +167,59 @@ class DatabaseManager {
     }
 
     async deleteEquipamento(id) {
-        const { data, error } = await this.supabase
+
+        const { error } = await this.supabase
             .from('equipamentos')
             .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return true;
+    }
+
+
+    // ============================================
+    // ORDENS DE SERVIÇO
+    // ============================================
+
+    async getOrdensServico() {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
+            .order('data_recebimento', { ascending: false });
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async getOrdemServicoById(id) {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
             .eq('id', id)
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async createOrdemServico(ordem) {
+
+        const payload = {
+            numero_os: 'OS-' + Date.now(),
+            ...ordem,
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+        };
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .insert(payload)
             .select()
             .single();
 
@@ -161,63 +228,9 @@ class DatabaseManager {
         return data;
     }
 
-    // ============================================
-    // ORDENS DE SERVIÇO
-    // ============================================
+    async updateOrdemServico(id, updates) {
 
-    async createOrdenServico(ordem) {
-        const newOrdem = {
-            id: 'os_' + Date.now(),
-            os_number: 'OS-' + Date.now(),
-            ...ordem,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        };
-
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .insert([newOrdem]);
-
-        if (error) throw error;
-
-        return data[0];
-    }
-
-    async getOrdensServico() {
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('*');
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async getOrdenServicoById(id) {
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async getOrdensServicoByCliente(clienteId) {
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('*')
-            .eq('client_id', clienteId);
-
-        if (error) throw error;
-
-        return data;
-    }
-
-    async updateOrdenServico(id, updates) {
-        updates.updated_at = new Date().toISOString();
+        updates.atualizado_em = new Date().toISOString();
 
         const { data, error } = await this.supabase
             .from('ordens_servico')
@@ -231,123 +244,142 @@ class DatabaseManager {
         return data;
     }
 
-    async deleteOrdenServico(id) {
-        const { data, error } = await this.supabase
+    async deleteOrdemServico(id) {
+
+        const { error } = await this.supabase
             .from('ordens_servico')
             .delete()
-            .eq('id', id)
-            .select()
-            .single();
+            .eq('id', id);
 
         if (error) throw error;
 
-        return data;
+        return true;
     }
+
+
     // ============================================
-    // DASHBOARD / ESTATÍSTICAS
+    // DASHBOARD
     // ============================================
 
     async getStatistics() {
-        try {
-
-            const { count: clientes } = await this.supabase
-                .from('clientes')
-                .select('*', { count: 'exact', head: true });
-
-            const { count: equipamentos } = await this.supabase
-                .from('equipamentos')
-                .select('*', { count: 'exact', head: true });
-
-            const { count: ordens } = await this.supabase
-                .from('ordens_servico')
-                .select('*', { count: 'exact', head: true });
-
-            const { count: finalizadas } = await this.supabase
-                .from('ordens_servico')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'finalizado');
-
-            return {
-                clientes: clientes || 0,
-                equipamentos: equipamentos || 0,
-                ordens: ordens || 0,
-                finalizadas: finalizadas || 0
-            };
-
-        } catch (error) {
-            Logger.error('Error loading statistics', error);
-            throw error;
-        }
-    }
-
-    async getOrderStatusCounts() {
-        try {
-
-            const { data, error } = await this.supabase
-                .from('ordens_servico')
-                .select('status');
-
-            if (error) throw error;
-
-            const counts = {};
-
-            data.forEach(o => {
-                counts[o.status] = (counts[o.status] || 0) + 1;
-            });
-
-            return counts;
-
-        } catch (error) {
-            Logger.error('Error getting order status counts', error);
-            throw error;
-        }
-    }
-    // ============================================
-// RECEITA MENSAL (DASHBOARD)
-// ============================================
-
-async getMonthlyRevenue() {
-    try {
 
         const { data, error } = await this.supabase
             .from('ordens_servico')
-            .select('valor, created_at')
-            .eq('status', 'finalizado');
+            .select('status, valor_servico');
 
         if (error) throw error;
 
-        const months = {};
+        let osAbertas = 0;
+        let osManutencao = 0;
+        let osFinalizadas = 0;
+        let faturamento = 0;
 
-        data.forEach(os => {
+        data.forEach(o => {
 
-            const date = new Date(os.created_at);
-            const key = `${date.getFullYear()}-${date.getMonth()+1}`;
+            if (o.status === 'recebido') osAbertas++;
 
-            if (!months[key]) {
-                months[key] = 0;
+            if (
+                o.status === 'em_analise' ||
+                o.status === 'aguardando_peca' ||
+                o.status === 'manutencao'
+            ) osManutencao++;
+
+            if (
+                o.status === 'finalizado' ||
+                o.status === 'entregue'
+            ) {
+                osFinalizadas++;
+                faturamento += parseFloat(o.valor_servico) || 0;
             }
 
-            months[key] += Number(os.valor) || 0;
+        });
+
+        return {
+            osAbertas,
+            osManutencao,
+            osFinalizadas,
+            faturamento
+        };
+    }
+
+
+    // ============================================
+    // STATUS DAS ORDENS
+    // ============================================
+
+    async getOrderStatusCounts() {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('status');
+
+        if (error) throw error;
+
+        const counts = {
+            recebido: 0,
+            em_analise: 0,
+            aguardando_peca: 0,
+            manutencao: 0,
+            finalizado: 0,
+            entregue: 0
+        };
+
+        data.forEach(o => {
+
+            if (counts[o.status] !== undefined) {
+                counts[o.status]++;
+            }
+
+        });
+
+        return counts;
+    }
+
+
+    // ============================================
+    // FATURAMENTO MENSAL
+    // ============================================
+
+    async getMonthlyRevenue() {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('valor_servico, data_recebimento')
+            .in('status', ['finalizado', 'entregue']);
+
+        if (error) throw error;
+
+        const months = {
+            jan:0, fev:0, mar:0, abr:0,
+            mai:0, jun:0, jul:0, ago:0,
+            set:0, out:0, nov:0, dez:0
+        };
+
+        const keys = Object.keys(months);
+
+        data.forEach(o => {
+
+            const month = new Date(o.data_recebimento).getMonth();
+            const key = keys[month];
+
+            months[key] += parseFloat(o.valor_servico) || 0;
 
         });
 
         return months;
-
-    } catch (error) {
-        Logger.error('Error getting monthly revenue', error);
-        throw error;
     }
+
 }
-}
+
 
 // ============================================
 // INICIALIZAÇÃO GLOBAL
 // ============================================
 
 if (!window.supabaseClient) {
-    throw new Error('Supabase client não inicializado. Verifique config.js');
+    throw new Error('Supabase client não inicializado');
 }
 
 window.db = new DatabaseManager(window.supabaseClient);
 
-console.log('DatabaseManager pronto.');
+console.log('DatabaseManager inicializado');

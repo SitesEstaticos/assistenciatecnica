@@ -3,7 +3,9 @@
 // ============================================
 
 class CloudinaryManager {
+
     constructor(config, imageConfig) {
+
         if (!config) {
             throw new Error("CLOUDINARY_CONFIG não encontrado. Verifique config.js");
         }
@@ -12,6 +14,7 @@ class CloudinaryManager {
         this.uploadPreset = config.UPLOAD_PRESET;
         this.uploadUrl = `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`;
         this.imageConfig = imageConfig;
+
     }
 
     // Compress image (skips GIFs to preserve animation)
@@ -83,6 +86,7 @@ class CloudinaryManager {
             throw new Error(`Arquivo muito grande. Máximo: ${this.imageConfig.MAX_SIZE / 1024 / 1024}MB`);
 
         return true;
+
     }
 
     // Upload single image
@@ -101,12 +105,16 @@ class CloudinaryManager {
         const xhr = new XMLHttpRequest();
 
         if (onProgress) {
+
             xhr.upload.addEventListener('progress', (e) => {
+
                 if (e.lengthComputable) {
                     const percent = (e.loaded / e.total) * 100;
                     onProgress(percent);
                 }
+
             });
+
         }
 
         return new Promise((resolve, reject) => {
@@ -122,7 +130,7 @@ class CloudinaryManager {
                         public_id: response.public_id,
                         width: response.width,
                         height: response.height,
-                        size: response.bytes,
+                        size: response.bytes
                     });
 
                 } else {
@@ -221,23 +229,28 @@ class CloudinaryManager {
 
 }
 
+
 // ============================================
-// CONFIGURAÇÕES
+// CONFIGURAÇÕES GLOBAIS
 // ============================================
 
-const IMAGE_CONFIG = {
-    MAX_WIDTH: 1600,
-    MAX_HEIGHT: 1600,
-    COMPRESSION_QUALITY: 0.8,
-    ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    MAX_SIZE: 5 * 1024 * 1024
-};
+if (!window.IMAGE_CONFIG) {
 
-// usa a configuração que vem do config.js
-const cloudinary = new CloudinaryManager(window.CLOUDINARY_CONFIG, IMAGE_CONFIG);
+    window.IMAGE_CONFIG = {
+        MAX_WIDTH: 1600,
+        MAX_HEIGHT: 1600,
+        COMPRESSION_QUALITY: 0.8,
+        ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+        MAX_SIZE: 5 * 1024 * 1024
+    };
 
-// expõe globalmente
-window.cloudinary = cloudinary;
+}
+
+// cria instância global
+window.cloudinary = new CloudinaryManager(
+    window.CLOUDINARY_CONFIG,
+    window.IMAGE_CONFIG
+);
 
 
 // ============================================
@@ -254,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     uploadBtn.addEventListener('click', () => inputFiles.click());
 
-    inputFiles.addEventListener('change', async (e) => {
+    inputFiles.addEventListener('change', (e) => {
 
         const files = Array.from(e.target.files);
 

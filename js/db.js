@@ -205,6 +205,56 @@ class DatabaseManager {
 
         return true;
     }
+    // ============================================
+    // IMAGENS DO EQUIPAMENTO
+    // ============================================
+
+    async getImagensByEquipamento(equipamentoId) {
+
+        const { data, error } = await this.supabase
+            .from('imagens_equipamento')
+            .select('*')
+            .eq('equipamento_id', equipamentoId)
+            .order('criado_em', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
+    }
+
+    async createImagem(imagem) {
+
+        const payload = {
+            equipamento_id: imagem.equipamento_id,
+            url_imagem: imagem.url_imagem,
+            tipo_imagem: imagem.tipo_imagem,
+            descricao_tecnica: imagem.descricao_tecnica,
+            tecnico_responsavel: imagem.tecnico_responsavel,
+            criado_em: new Date().toISOString()
+        };
+
+        const { data, error } = await this.supabase
+            .from('imagens_equipamento')
+            .insert(payload)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async deleteImagem(id) {
+
+        const { error } = await this.supabase
+            .from('imagens_equipamento')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return true;
+    }
 
 
     // ============================================

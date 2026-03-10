@@ -1,125 +1,295 @@
 // ============================================
-// PDF GENERATOR MODULE - AUDITADO
+// PDF GENERATOR MODULE - PROFESSIONAL VERSION
 // ============================================
 
 class PDFGenerator {
+
     constructor() {
         this.pageWidth = 210;
         this.pageHeight = 297;
         this.margin = 10;
     }
 
-    async generateOrderPDF(ordem, cliente, equipamento, imagens = []) {
+    // ================================
+    // Helpers seguros
+    // ================================
+
+    safeDate(date) {
+        if (typeof formatDate === "function") return formatDate(date);
+        if (!date) return "N/A";
+        return new Date(date).toLocaleDateString("pt-BR");
+    }
+
+    safeDateTime(date) {
+        if (typeof formatDateTime === "function") return formatDateTime(date);
+        return new Date(date).toLocaleString("pt-BR");
+    }
+
+    safeCurrency(value) {
+        if (typeof formatCurrency === "function") return formatCurrency(value);
+        return new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+        }).format(value || 0);
+    }
+
+    safeStatus(status) {
+        if (typeof getStatusLabel === "function") return getStatusLabel(status);
+        return status || "N/A";
+    }
+
+    safeImageType(type) {
+        if (typeof getImageTypeLabel === "function") return getImageTypeLabel(type);
+        return type || "";
+    }
+
+    // ================================
+    // ORDEM DE SERVIÇO PDF
+    // ================================
+
+    async generateOrderPDF(ordem, cliente, equipamento, imagens = [], pecas = [], empresa = {}) {
+
         try {
-            Logger.log('Generating PDF for order:', ordem.id);
 
-            // Container temporário
-            const element = document.createElement('div');
-            element.id = `pdf-content-${Date.now()}`;
-            element.style.padding = '20px';
-            element.style.fontFamily = 'Inter, Arial, sans-serif';
-            element.style.fontSize = '12px';
-            element.style.lineHeight = '1.6';
-            element.style.color = '#0b3035';
+            Logger.log("Generating professional PDF", ordem.id);
 
-            // Conteúdo HTML
+            const element = document.createElement("div");
+
+            element.style.position = "absolute";
+            element.style.left = "-9999px";
+            element.style.width = "800px";
+            element.style.padding = "20px";
+            element.style.fontFamily = "Inter, Arial, sans-serif";
+            element.style.fontSize = "12px";
+            element.style.lineHeight = "1.6";
+            element.style.color = "#0b3035";
+
+            const totalPecas = pecas.reduce((sum, p) => sum + (p.total || 0), 0);
+            const totalServico = ordem.service_value || 0;
+            const totalFinal = totalServico + totalPecas;
+
             element.innerHTML = `
-                <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1a535c; padding-bottom: 10px;">
-                    <h1 style="color: #1a535c; margin: 0; font-size: 24px;">ORDEM DE SERVIÇO</h1>
-                    <p style="margin: 5px 0; font-weight: bold;">Número: ${ordem.os_number}</p>
+
+            <!-- HEADER -->
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a535c;padding-bottom:10px;margin-bottom:20px;">
+
+                <div>
+                    ${empresa.logo ? `<img src="${empresa.logo}" style="height:60px;">` : ""}
                 </div>
 
-                <section style="margin-bottom: 20px;">
-                    <h3 style="color: #1a535c; border-bottom: 1px solid #ddd; padding-bottom: 5px;">INFORMAÇÕES DO CLIENTE</h3>
-                    <table style="width:100%;border-collapse:collapse;">
-                        <tr>
-                            <td style="width:50%; padding:5px;"><strong>Nome:</strong> ${cliente?.name || 'N/A'}</td>
-                            <td style="width:50%; padding:5px;"><strong>Email:</strong> ${cliente?.email || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding:5px;"><strong>Telefone:</strong> ${cliente?.phone || 'N/A'}</td>
-                            <td style="padding:5px;"><strong>CPF:</strong> ${cliente?.cpf || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" style="padding:5px;"><strong>Endereço:</strong> ${cliente?.address || 'N/A'}</td>
-                        </tr>
-                    </table>
-                </section>
+                <div style="text-align:right;">
+                    <h2 style="margin:0;color:#1a535c;">ORDEM DE SERVIÇO</h2>
+                    <strong>Nº ${ordem.os_number}</strong>
+                </div>
 
-                <section style="margin-bottom: 20px;">
-                    <h3 style="color: #1a535c; border-bottom: 1px solid #ddd; padding-bottom: 5px;">INFORMAÇÕES DO EQUIPAMENTO</h3>
-                    <table style="width:100%;border-collapse:collapse;">
-                        <tr>
-                            <td style="width:50%; padding:5px;"><strong>Marca:</strong> ${equipamento?.brand || 'N/A'}</td>
-                            <td style="width:50%; padding:5px;"><strong>Modelo:</strong> ${equipamento?.model || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" style="padding:5px;"><strong>Número de Série:</strong> ${equipamento?.serial_number || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding:5px;"><strong>Estado Físico:</strong> ${equipamento?.physical_condition || 'N/A'}</td>
-                            <td style="padding:5px;"><strong>Acessórios:</strong> ${equipamento?.accessories || 'N/A'}</td>
-                        </tr>
-                    </table>
-                </section>
+            </div>
 
-                <section style="margin-bottom:20px;">
-                    <h3 style="color:#1a535c;border-bottom:1px solid #ddd;padding-bottom:5px;">INFORMAÇÕES DO SERVIÇO</h3>
-                    <table style="width:100%;border-collapse:collapse;">
-                        <tr>
-                            <td style="width:50%; padding:5px;"><strong>Data de Recebimento:</strong> ${formatDate(ordem.date_received)}</td>
-                            <td style="width:50%; padding:5px;"><strong>Status:</strong> ${getStatusLabel(ordem.status)}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" style="padding:5px;"><strong>Técnico Responsável:</strong> ${ordem.technician_responsible || 'N/A'}</td>
-                        </tr>
-                    </table>
-                </section>
+            <!-- CLIENTE -->
+            <section style="page-break-inside:avoid;margin-bottom:20px;">
+            <h3 style="color:#1a535c;">CLIENTE</h3>
 
-                <section style="margin-bottom:20px;">
-                    <h3 style="color:#1a535c;border-bottom:1px solid #ddd;padding-bottom:5px;">PROBLEMA RELATADO</h3>
-                    <p style="padding:10px;background-color:#f7fff7;border-left:3px solid #1a535c;">${ordem.problem_reported || 'Não informado'}</p>
-                </section>
+            <table style="width:100%;border-collapse:collapse;">
+            <tr>
+            <td><strong>Nome:</strong> ${cliente?.name || "N/A"}</td>
+            <td><strong>Telefone:</strong> ${cliente?.phone || "N/A"}</td>
+            </tr>
 
-                <section style="margin-bottom:20px;">
-                    <h3 style="color:#1a535c;border-bottom:1px solid #ddd;padding-bottom:5px;">DIAGNÓSTICO TÉCNICO</h3>
-                    <p style="padding:10px;background-color:#f7fff7;border-left:3px solid #1a535c;">${ordem.technical_diagnosis || 'Não informado'}</p>
-                </section>
+            <tr>
+            <td><strong>Email:</strong> ${cliente?.email || "N/A"}</td>
+            <td><strong>CPF:</strong> ${cliente?.cpf || "N/A"}</td>
+            </tr>
 
-                <section style="margin-bottom:20px;">
-                    <h3 style="color:#1a535c;border-bottom:1px solid #ddd;padding-bottom:5px;">SERVIÇOS REALIZADOS</h3>
-                    <p style="padding:10px;background-color:#f7fff7;border-left:3px solid #1a535c;">${ordem.services_performed || 'Não informado'}</p>
-                </section>
+            <tr>
+            <td colspan="2"><strong>Endereço:</strong> ${cliente?.address || "N/A"}</td>
+            </tr>
 
-                <section style="margin-bottom:20px;">
-                    <h3 style="color:#1a535c;border-bottom:1px solid #ddd;padding-bottom:5px;">INFORMAÇÕES FINANCEIRAS</h3>
-                    <table style="width:100%;border-collapse:collapse;">
-                        <tr>
-                            <td style="width:50%;padding:5px;"><strong>Valor do Serviço:</strong> ${formatCurrency(ordem.service_value)}</td>
-                            <td style="width:50%;padding:5px;"><strong>Valor Total:</strong> ${formatCurrency(ordem.service_value)}</td>
-                        </tr>
-                    </table>
-                </section>
+            </table>
+            </section>
 
-                ${imagens.length > 0 ? `
-                    <section style="margin-bottom:20px; page-break-inside: avoid;">
-                        <h3 style="color:#1a535c;border-bottom:1px solid #ddd;padding-bottom:5px;">GALERIA DE IMAGENS</h3>
-                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap:10px;">
-                            ${imagens.map(img => `
-                                <div style="text-align:center; border:1px solid #ddd; padding:5px;">
-                                    <img src="${img.url}" style="max-width:100%;height:auto;" alt="${img.tipo_imagem}">
-                                    <p style="font-size:10px;margin:2px 0;"><strong>${getImageTypeLabel(img.tipo_imagem)}</strong></p>
-                                    <p style="font-size:9px;color:#666;">${img.descricao_tecnica || ''}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </section>
-                ` : ''}
 
-                <footer style="margin-top:30px;border-top:2px solid #1a535c;padding-top:10px;text-align:center;font-size:10px;color:#666;">
-                    <p>Documento gerado em ${formatDateTime(new Date())}</p>
-                    <p>Sistema de Gerenciamento de Assistência Técnica</p>
-                </footer>
+            <!-- EQUIPAMENTO -->
+            <section style="page-break-inside:avoid;margin-bottom:20px;">
+
+            <h3 style="color:#1a535c;">EQUIPAMENTO</h3>
+
+            <table style="width:100%;border-collapse:collapse;">
+
+            <tr>
+            <td><strong>Marca:</strong> ${equipamento?.brand || "N/A"}</td>
+            <td><strong>Modelo:</strong> ${equipamento?.model || "N/A"}</td>
+            </tr>
+
+            <tr>
+            <td><strong>Nº Série:</strong> ${equipamento?.serial_number || "N/A"}</td>
+            <td><strong>Acessórios:</strong> ${equipamento?.accessories || "N/A"}</td>
+            </tr>
+
+            </table>
+
+            </section>
+
+
+            <!-- SERVIÇO -->
+            <section style="page-break-inside:avoid;margin-bottom:20px;">
+
+            <h3 style="color:#1a535c;">SERVIÇO</h3>
+
+            <table style="width:100%;border-collapse:collapse;">
+
+            <tr>
+            <td><strong>Recebido em:</strong> ${this.safeDate(ordem.date_received)}</td>
+            <td><strong>Status:</strong> ${this.safeStatus(ordem.status)}</td>
+            </tr>
+
+            <tr>
+            <td colspan="2"><strong>Técnico:</strong> ${ordem.technician_responsible || "N/A"}</td>
+            </tr>
+
+            </table>
+
+            </section>
+
+
+            <!-- PROBLEMA -->
+            <section style="page-break-inside:avoid;margin-bottom:20px;">
+            <h3 style="color:#1a535c;">PROBLEMA RELATADO</h3>
+
+            <div style="padding:10px;background:#f7fff7;border-left:4px solid #1a535c;">
+            ${ordem.problem_reported || "Não informado"}
+            </div>
+
+            </section>
+
+
+            <!-- DIAGNÓSTICO -->
+            <section style="page-break-inside:avoid;margin-bottom:20px;">
+
+            <h3 style="color:#1a535c;">DIAGNÓSTICO</h3>
+
+            <div style="padding:10px;background:#f7fff7;border-left:4px solid #1a535c;">
+            ${ordem.technical_diagnosis || "Não informado"}
+            </div>
+
+            </section>
+
+
+            <!-- SERVIÇOS -->
+            <section style="page-break-inside:avoid;margin-bottom:20px;">
+
+            <h3 style="color:#1a535c;">SERVIÇOS REALIZADOS</h3>
+
+            <div style="padding:10px;background:#f7fff7;border-left:4px solid #1a535c;">
+            ${ordem.services_performed || "Não informado"}
+            </div>
+
+            </section>
+
+
+            <!-- PEÇAS -->
+            ${pecas.length ? `
+            <section style="margin-bottom:20px;">
+
+            <h3 style="color:#1a535c;">PEÇAS UTILIZADAS</h3>
+
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+
+            <thead style="background:#1a535c;color:white;">
+            <tr>
+            <th style="padding:6px;">Peça</th>
+            <th style="padding:6px;">Qtd</th>
+            <th style="padding:6px;">Valor</th>
+            <th style="padding:6px;">Total</th>
+            </tr>
+            </thead>
+
+            <tbody>
+
+            ${pecas.map(p => `
+            <tr>
+            <td style="padding:6px;border:1px solid #ddd;">${p.nome}</td>
+            <td style="padding:6px;border:1px solid #ddd;">${p.quantidade}</td>
+            <td style="padding:6px;border:1px solid #ddd;">${this.safeCurrency(p.valor)}</td>
+            <td style="padding:6px;border:1px solid #ddd;">${this.safeCurrency(p.total)}</td>
+            </tr>
+            `).join("")}
+
+            </tbody>
+
+            </table>
+
+            </section>
+            ` : ""}
+
+
+            <!-- TOTAL -->
+            <section style="margin-bottom:20px;">
+
+            <h3 style="color:#1a535c;">RESUMO FINANCEIRO</h3>
+
+            <table style="width:300px;border-collapse:collapse;">
+
+            <tr>
+            <td>Serviço</td>
+            <td style="text-align:right;">${this.safeCurrency(totalServico)}</td>
+            </tr>
+
+            <tr>
+            <td>Peças</td>
+            <td style="text-align:right;">${this.safeCurrency(totalPecas)}</td>
+            </tr>
+
+            <tr style="font-weight:bold;border-top:2px solid #000;">
+            <td>Total</td>
+            <td style="text-align:right;">${this.safeCurrency(totalFinal)}</td>
+            </tr>
+
+            </table>
+
+            </section>
+
+
+            <!-- IMAGENS -->
+            ${Array.isArray(imagens) && imagens.length ? `
+            <section style="margin-bottom:20px;">
+
+            <h3 style="color:#1a535c;">IMAGENS</h3>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+
+            ${imagens.map(img => `
+            <div style="border:1px solid #ddd;padding:5px;text-align:center;">
+            <img src="${img.url}" style="max-width:100%;height:auto;">
+            <div style="font-size:9px;">${this.safeImageType(img.tipo_imagem)}</div>
+            </div>
+            `).join("")}
+
+            </div>
+
+            </section>
+            ` : ""}
+
+
+            <!-- ASSINATURAS -->
+            <section style="margin-top:40px;display:flex;justify-content:space-between;">
+
+            <div style="text-align:center;width:40%;">
+            <div style="border-top:1px solid #000;margin-top:40px;"></div>
+            Cliente
+            </div>
+
+            <div style="text-align:center;width:40%;">
+            <div style="border-top:1px solid #000;margin-top:40px;"></div>
+            Técnico
+            </div>
+
+            </section>
+
+
+            <!-- FOOTER -->
+            <footer style="margin-top:40px;text-align:center;font-size:10px;color:#777;">
+            Gerado em ${this.safeDateTime(new Date())}
+            </footer>
+
             `;
 
             document.body.appendChild(element);
@@ -127,107 +297,31 @@ class PDFGenerator {
             const opt = {
                 margin: this.margin,
                 filename: `OS-${ordem.os_number}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
+                image: { type: "jpeg", quality: 0.95 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true
+                },
+                jsPDF: {
+                    orientation: "portrait",
+                    unit: "mm",
+                    format: "a4"
+                }
             };
 
             await html2pdf().set(opt).from(element).save();
+
             document.body.removeChild(element);
 
-            Logger.log('PDF generated successfully for order:', ordem.id);
+            Logger.log("PDF generated successfully");
+
             return true;
+
         } catch (error) {
-            Logger.error('Error generating PDF', error);
+
+            Logger.error("PDF generation error", error);
             throw error;
-        }
-    }
 
-    // Financial report
-    async generateFinancialReportPDF(data, month) {
-        try {
-            Logger.log('Generating financial report PDF for:', month);
-
-            const element = document.createElement('div');
-            element.style.padding = '20px';
-            element.style.fontFamily = 'Inter, Arial, sans-serif';
-            element.style.fontSize = '12px';
-
-            const totalRevenue = data.reduce((sum, item) => sum + (item.total || 0), 0);
-            const totalOrders = data.length;
-            const averageTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-            element.innerHTML = `
-                <header style="text-align:center;margin-bottom:20px;border-bottom:2px solid #1a535c;padding-bottom:10px;">
-                    <h1 style="color:#1a535c;margin:0;">RELATÓRIO FINANCEIRO</h1>
-                    <p style="margin:5px 0;">Período: ${month}</p>
-                </header>
-
-                <section style="margin-bottom:20px;">
-                    <h3 style="color:#1a535c;">RESUMO</h3>
-                    <table style="width:100%;border-collapse:collapse;">
-                        <tr style="background-color:#f0f0f0;">
-                            <td style="padding:10px;border:1px solid #ddd;"><strong>Total de Ordens:</strong></td>
-                            <td style="padding:10px;border:1px solid #ddd;">${totalOrders}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding:10px;border:1px solid #ddd;"><strong>Faturamento Total:</strong></td>
-                            <td style="padding:10px;border:1px solid #ddd;">${formatCurrency(totalRevenue)}</td>
-                        </tr>
-                        <tr style="background-color:#f0f0f0;">
-                            <td style="padding:10px;border:1px solid #ddd;"><strong>Ticket Médio:</strong></td>
-                            <td style="padding:10px;border:1px solid #ddd;">${formatCurrency(averageTicket)}</td>
-                        </tr>
-                    </table>
-                </section>
-
-                <section style="margin-bottom:20px;">
-                    <h3 style="color:#1a535c;">DETALHES</h3>
-                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
-                        <thead>
-                            <tr style="background-color:#1a535c;color:white;">
-                                <th style="padding:8px;border:1px solid #ddd;text-align:left;">Data</th>
-                                <th style="padding:8px;border:1px solid #ddd;text-align:left;">Número OS</th>
-                                <th style="padding:8px;border:1px solid #ddd;text-align:left;">Cliente</th>
-                                <th style="padding:8px;border:1px solid #ddd;text-align:right;">Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.map((item, i) => `
-                                <tr style="background-color:${i % 2 === 0 ? '#fff' : '#f9f9f9'};">
-                                    <td style="padding:8px;border:1px solid #ddd;">${formatDate(item.date)}</td>
-                                    <td style="padding:8px;border:1px solid #ddd;">${item.os_number}</td>
-                                    <td style="padding:8px;border:1px solid #ddd;">${item.client_name}</td>
-                                    <td style="padding:8px;border:1px solid #ddd;text-align:right;">${formatCurrency(item.total)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </section>
-
-                <footer style="margin-top:30px;text-align:center;font-size:10px;color:#666;">
-                    <p>Relatório gerado em ${formatDateTime(new Date())}</p>
-                </footer>
-            `;
-
-            document.body.appendChild(element);
-
-            const opt = {
-                margin: this.margin,
-                filename: `Relatorio-Financeiro-${month}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-            };
-
-            await html2pdf().set(opt).from(element).save();
-            document.body.removeChild(element);
-
-            Logger.log('Financial report PDF generated successfully');
-            return true;
-        } catch (error) {
-            Logger.error('Error generating financial report PDF', error);
-            throw error;
         }
     }
 }

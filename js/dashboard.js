@@ -220,10 +220,38 @@ function viewOrderDetails(orderId) {
     window.location.href = `ordens-servico.html?id=${orderId}`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
-    if (document.getElementById('statusChart')) {
-        initDashboard();
+    try {
+
+        await auth.ready;
+
+        if (!auth.isLoggedIn()) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        loadUserProfile();
+
+        if (document.getElementById('statusChart')) {
+            initDashboard();
+        }
+
+    } catch (error) {
+        Logger.error("Erro ao iniciar dashboard", error);
     }
 
 });
+function loadUserProfile() {
+
+    const user = auth.getUser();
+
+    if (!user) return;
+
+    const emailEl = document.getElementById("userEmail");
+
+    if (emailEl) {
+        emailEl.textContent = user.email;
+    }
+
+}

@@ -152,7 +152,7 @@ function setupEventListeners() {
 
     }
 
-    ['closeEquipmentModal','cancelEquipmentBtn','closeDetailsModal','closeDetailsBtn']
+    ['closeEquipmentModal', 'cancelEquipmentBtn', 'closeDetailsModal', 'closeDetailsBtn']
         .forEach(id => {
 
             const elem = document.getElementById(id);

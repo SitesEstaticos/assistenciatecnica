@@ -26,7 +26,7 @@ class DatabaseManager {
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
     async getClienteById(id) {
@@ -61,7 +61,7 @@ class DatabaseManager {
         return data;
     }
 
-    async updateCliente(id, updates) {
+    async updateCliente(id, updates = {}) {
 
         updates.atualizado_em = new Date().toISOString();
 
@@ -103,7 +103,7 @@ class DatabaseManager {
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
     async getEquipamentoById(id) {
@@ -128,7 +128,7 @@ class DatabaseManager {
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
     async createEquipamento(equipamento) {
@@ -150,7 +150,7 @@ class DatabaseManager {
         return data;
     }
 
-    async updateEquipamento(id, updates) {
+    async updateEquipamento(id, updates = {}) {
 
         updates.atualizado_em = new Date().toISOString();
 
@@ -192,7 +192,7 @@ class DatabaseManager {
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
     async getOrdemServicoById(id) {
@@ -210,8 +210,10 @@ class DatabaseManager {
 
     async createOrdemServico(ordem) {
 
+        const numeroOS = `OS-${Date.now()}`;
+
         const payload = {
-            numero_os: 'OS-' + Date.now(),
+            numero_os: numeroOS,
             ...ordem,
             criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
@@ -228,7 +230,7 @@ class DatabaseManager {
         return data;
     }
 
-    async updateOrdemServico(id, updates) {
+    async updateOrdemServico(id, updates = {}) {
 
         updates.atualizado_em = new Date().toISOString();
 
@@ -255,6 +257,8 @@ class DatabaseManager {
 
         return true;
     }
+
+
     // ============================================
     // PEÇAS / ESTOQUE
     // ============================================
@@ -268,7 +272,7 @@ class DatabaseManager {
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
     async getPecaById(id) {
@@ -303,7 +307,7 @@ class DatabaseManager {
         return data;
     }
 
-    async updatePeca(id, updates) {
+    async updatePeca(id, updates = {}) {
 
         updates.atualizado_em = new Date().toISOString();
 
@@ -331,6 +335,7 @@ class DatabaseManager {
         return true;
     }
 
+
     // ============================================
     // DASHBOARD
     // ============================================
@@ -348,7 +353,7 @@ class DatabaseManager {
         let osFinalizadas = 0;
         let faturamento = 0;
 
-        data.forEach(o => {
+        (data || []).forEach(o => {
 
             if (o.status === 'recebido') osAbertas++;
 
@@ -362,8 +367,11 @@ class DatabaseManager {
                 o.status === 'finalizado' ||
                 o.status === 'entregue'
             ) {
+
                 osFinalizadas++;
+
                 faturamento += parseFloat(o.valor_servico) || 0;
+
             }
 
         });
@@ -398,10 +406,12 @@ class DatabaseManager {
             entregue: 0
         };
 
-        data.forEach(o => {
+        (data || []).forEach(o => {
 
             if (counts[o.status] !== undefined) {
+
                 counts[o.status]++;
+
             }
 
         });
@@ -431,9 +441,10 @@ class DatabaseManager {
 
         const keys = Object.keys(months);
 
-        data.forEach(o => {
+        (data || []).forEach(o => {
 
             const month = new Date(o.data_recebimento).getMonth();
+
             const key = keys[month];
 
             months[key] += parseFloat(o.valor_servico) || 0;

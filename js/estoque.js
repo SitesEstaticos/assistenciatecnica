@@ -62,7 +62,7 @@ function renderPartsTable(pecas) {
 
     pecas.forEach(peca => {
 
-        const totalValue = peca.quantidade * peca.preco_custo;
+        const totalValue = peca.quantidade * peca.valor_compra;
 
         const row = document.createElement('tr');
 
@@ -70,8 +70,8 @@ function renderPartsTable(pecas) {
             <td>${peca.nome}</td>
             <td>${peca.codigo || 'N/A'}</td>
             <td>${peca.quantidade}</td>
-            <td>${formatCurrency(peca.preco_custo)}</td>
-            <td>${formatCurrency(peca.preco_venda)}</td>
+            <td>${formatCurrency(peca.valor_compra)}</td>
+            <td>${formatCurrency(peca.valor_venda)}</td>
             <td>${formatCurrency(totalValue)}</td>
             <td>
                 <button class="btn btn-small btn-primary"
@@ -179,7 +179,7 @@ function updateStockStatistics() {
     ).length;
 
     const totalValue = allPecas.reduce((sum, p) =>
-        sum + p.quantidade * p.preco_custo
+        sum + (p.quantidade * p.valor_compra)
         , 0);
 
     document.getElementById('totalParts').textContent = totalParts;
@@ -225,9 +225,9 @@ function openEditPartModal(pecaId) {
     document.getElementById('partMinQuantity').value =
         peca.quantidade_minima || '';
 
-    document.getElementById('partCostPrice').value = peca.preco_custo;
+    document.getElementById('partCostPrice').value = peca.valor_compra;
 
-    document.getElementById('partSalePrice').value = peca.preco_venda;
+    document.getElementById('partSalePrice').value = peca.valor_venda;
 
     document.getElementById('partDescription').value = peca.descricao || '';
 
@@ -257,11 +257,11 @@ async function savePeca(e) {
             document.getElementById('partMinQuantity').value
         ) || 5,
 
-        preco_custo: parseFloat(
+        valor_compra: parseFloat(
             document.getElementById('partCostPrice').value
         ),
 
-        preco_venda: parseFloat(
+        valor_venda: parseFloat(
             document.getElementById('partSalePrice').value
         ),
 
@@ -334,11 +334,13 @@ async function viewPartDetails(pecaId) {
         currentPartId = pecaId;
 
         const totalValue =
-            peca.quantidade * peca.preco_custo;
+            peca.quantidade * peca.valor_compra;
 
         const margin =
-            ((peca.preco_venda - peca.preco_custo)
-                / peca.preco_custo) * 100;
+            peca.valor_compra > 0
+                ? ((peca.valor_venda - peca.valor_compra)
+                    / peca.valor_compra) * 100
+                : 0;
 
         document.getElementById('detailsTitle').textContent =
             `Detalhes da Peça - ${peca.nome}`;
@@ -356,10 +358,10 @@ async function viewPartDetails(pecaId) {
             peca.quantidade_minima || 'N/A';
 
         document.getElementById('detailCostPrice').textContent =
-            formatCurrency(peca.preco_custo);
+            formatCurrency(peca.valor_compra);
 
         document.getElementById('detailSalePrice').textContent =
-            formatCurrency(peca.preco_venda);
+            formatCurrency(peca.valor_venda);
 
         document.getElementById('detailMargin').textContent =
             margin.toFixed(2) + '%';

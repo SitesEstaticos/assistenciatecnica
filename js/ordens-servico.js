@@ -43,15 +43,15 @@ async function initOrdensServicoPage() {
 async function viewOrderDetails(ordemId) {
 
     currentOrderId = ordemId;
-    
+
     try {
 
         const ordem = await db.getOrdemServicoById(ordemId);
 
+        currentOrder = ordem; //--> carrega o ID da ordem para uso global
+
         const cliente = await db.getClienteById(ordem.cliente_id);
-
         const equipamento = await db.getEquipamentoById(ordem.equipamento_id);
-
         // =============================
         // DETALHES PRINCIPAIS
         // =============================
@@ -581,22 +581,17 @@ async function generateOrderPdf() {
 
     try {
 
-        const orderId = currentOrderId;
-
-        if (!orderId) {
-            alert("Nenhuma ordem selecionada");
+        if (!currentOrder) {
+            alert("Nenhuma ordem carregada");
             return;
         }
 
-        const ordem = await db.getOrdemServicoById(orderId);
+        const ordem = currentOrder;
 
         const cliente = await db.getClienteById(ordem.cliente_id);
-
         const equipamento = await db.getEquipamentoById(ordem.equipamento_id);
-
-        const imagens = await db.getImagensByOrdem(orderId);
-
-        const pecas = await db.getPecasByOrdem(orderId);
+        const imagens = await db.getImagensByOrdem(ordem.id);
+        const pecas = await db.getPecasByOrdem(ordem.id);
 
         await pdfGenerator.generateOrderPDF(
             ordem,

@@ -177,9 +177,9 @@ class DatabaseManager {
 
         return true;
     }
-// ============================================
-// IMAGENS
-// ============================================
+    // ============================================
+    // IMAGENS
+    // ============================================
     async createImagem(imagem) {
 
         const payload = {
@@ -197,29 +197,7 @@ class DatabaseManager {
 
         return data;
     }
-    async getOrdensServicoByCliente(clienteId) {
 
-        const { data: equipamentos, error: errorEquip } = await this.supabase
-            .from('equipamentos')
-            .select('id')
-            .eq('cliente_id', clienteId);
-
-        if (errorEquip) throw errorEquip;
-
-        const ids = (equipamentos || []).map(e => e.id);
-
-        if (ids.length === 0) return [];
-
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('*')
-            .in('equipamento_id', ids)
-            .order('criado_em', { ascending: false });
-
-        if (error) throw error;
-
-        return data || [];
-    }
     async getImagensByEquipamento(equipamentoId) {
 
         const { data, error } = await this.supabase
@@ -232,50 +210,36 @@ class DatabaseManager {
 
         return data || [];
     }
-    
-    // ============================================
-    // ORDENS DE SERVIÇO
-    // ============================================
 
-    async getOrdensServico() {
+    async getImagensByEquipamento(equipamentoId) {
 
         const { data, error } = await this.supabase
-            .from('ordens_servico')
+            .from('imagens_equipamento')
             .select('*')
-            .order('data_recebimento', { ascending: false });
+            .eq('equipamento_id', equipamentoId);
 
         if (error) throw error;
 
         return data || [];
     }
 
-    async getOrdemServicoById(id) {
+    async getImagensByOrdem(ordemId) {
 
         const { data, error } = await this.supabase
-            .from('ordens_servico')
+            .from('imagens_equipamento')
             .select('*')
-            .eq('id', id)
-            .single();
+            .eq('ordem_id', ordemId);
 
         if (error) throw error;
 
-        return data;
+        return data || [];
     }
 
-    async createOrdemServico(ordem) {
-
-        const numeroOS = `OS-${Date.now()}`;
-
-        const payload = {
-            numero_os: numeroOS,
-            ...ordem,
-            criado_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
-        };
+    async createImagem(imagem) {
 
         const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .insert(payload)
+            .from('imagens_equipamento')
+            .insert(imagem)
             .select()
             .single();
 
@@ -284,33 +248,108 @@ class DatabaseManager {
         return data;
     }
 
-    async updateOrdemServico(id, updates = {}) {
+    // ============================================
+// ORDENS DE SERVIÇO
+// ============================================
 
-        updates.atualizado_em = new Date().toISOString();
+async getOrdensServico() {
 
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
+    const { data, error } = await this.supabase
+        .from('ordens_servico')
+        .select('*')
+        .order('data_recebimento', { ascending: false });
 
-        if (error) throw error;
+    if (error) throw error;
 
-        return data;
-    }
+    return data || [];
+}
 
-    async deleteOrdemServico(id) {
+async getOrdensServicoByCliente(clienteId) {
 
-        const { error } = await this.supabase
-            .from('ordens_servico')
-            .delete()
-            .eq('id', id);
+    const { data: equipamentos, error: errorEquip } = await this.supabase
+        .from('equipamentos')
+        .select('id')
+        .eq('cliente_id', clienteId);
 
-        if (error) throw error;
+    if (errorEquip) throw errorEquip;
 
-        return true;
-    }
+    const ids = (equipamentos || []).map(e => e.id);
+
+    if (ids.length === 0) return [];
+
+    const { data, error } = await this.supabase
+        .from('ordens_servico')
+        .select('*')
+        .in('equipamento_id', ids)
+        .order('data_recebimento', { ascending: false });
+
+    if (error) throw error;
+
+    return data || [];
+}
+
+async getOrdemServicoById(id) {
+
+    const { data, error } = await this.supabase
+        .from('ordens_servico')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) throw error;
+
+    return data;
+}
+
+async createOrdemServico(ordem) {
+
+    const numeroOS = `OS-${Date.now()}`;
+
+    const payload = {
+        numero_os: numeroOS,
+        ...ordem,
+        criado_em: new Date().toISOString(),
+        atualizado_em: new Date().toISOString()
+    };
+
+    const { data, error } = await this.supabase
+        .from('ordens_servico')
+        .insert(payload)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    return data;
+}
+
+async updateOrdemServico(id, updates = {}) {
+
+    updates.atualizado_em = new Date().toISOString();
+
+    const { data, error } = await this.supabase
+        .from('ordens_servico')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    return data;
+}
+
+async deleteOrdemServico(id) {
+
+    const { error } = await this.supabase
+        .from('ordens_servico')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+
+    return true;
+}
 
 
     // ============================================

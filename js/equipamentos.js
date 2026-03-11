@@ -291,10 +291,10 @@ async function handleImageUpload(event) {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', window.CONFIG.CLOUDINARY.uploadPreset);
+        formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
 
         const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${window.CONFIG.CLOUDINARY.cloudName}/image/upload`,
+            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
             {
                 method: 'POST',
                 body: formData

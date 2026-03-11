@@ -361,6 +361,56 @@ async function removeExistingImage(imageId) {
 
 }
 
+
+function appendUploadedImagePreview(imageUrl, uniqueName) {
+
+    const preview = document.getElementById('imagePreview');
+
+    const div = document.createElement('div');
+    div.className = 'image-preview-item';
+    div.dataset.fileName = uniqueName;
+
+    div.innerHTML = `
+        <img src="${imageUrl}">
+        <button type="button" onclick="removeNewImage('${uniqueName}')">X</button>
+    `;
+
+    preview.appendChild(div);
+
+}
+
+async function uploadImageToCloudinary(file, includeDeleteToken = true) {
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
+
+    if (includeDeleteToken)
+        formData.append('return_delete_token', 'true');
+
+    const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
+        {
+            method: 'POST',
+            body: formData
+        }
+    );
+
+    let data = {};
+
+    try {
+        data = await response.json();
+    } catch {
+        data = {};
+    }
+
+    if (!response.ok || !data.secure_url)
+        throw new Error(data.error?.message || 'Falha no upload da imagem');
+
+    return data;
+
+}
+
 async function handleImageUpload(event) {
 
     const files = Array.from(event.target.files || []);
@@ -369,6 +419,7 @@ async function handleImageUpload(event) {
         return;
 
     const existingNames = new Set(uploadedImages.map(img => img.name));
+    const failedFiles = [];
 
     for (const file of files) {
 
@@ -379,10 +430,19 @@ async function handleImageUpload(event) {
 
         const reader = new FileReader();
 
-        reader.onload = function (e) {
+        if (existingNames.has(uniqueName))
+            continue;
 
-            const preview = document.getElementById('imagePreview');
+        try {
 
+            let data;
+
+            try {
+                data = await uploadImageToCloudinary(file, true);
+            } catch (error) {
+                Logger.log('Upload com delete_token falhou, tentando fallback simples...', error?.message);
+                data = await uploadImageToCloudinary(file, false);
+            }
             const div = document.createElement('div');
             div.className = 'image-preview-item';
             div.dataset.fileName = uniqueName;
@@ -392,27 +452,40 @@ async function handleImageUpload(event) {
                 <button type="button" onclick="removeNewImage('${uniqueName}')">X</button>
             `;
 
-            preview.appendChild(div);
+            uploadedImages.push({
+                name: uniqueName,
+                originalName: file.name,
+                url: data.secure_url,
+                deleteToken: data.delete_token || null,
+                publicId: data.public_id || null
+            });
 
-        };
+            if (data.secure_url && data.delete_token)
+                saveCloudinaryToken(data.secure_url, data.delete_token);
 
-        reader.readAsDataURL(file);
+            appendUploadedImagePreview(data.secure_url, uniqueName);
 
+            existingNames.add(uniqueName);
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
         formData.append('return_delete_token', 'true');
 
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
-            {
-                method: 'POST',
-                body: formData
-            }
+        } catch (error) {
+
+            Logger.error('Falha no upload da imagem', { file: file.name, error });
+            failedFiles.push(file.name);
+
+        }
+
+    }
+
+    if (failedFiles.length > 0) {
+
+        alert(
+            'Não foi possível enviar as seguintes imagens: ' +
+            failedFiles.join(', ')
         );
-
-        const data = await response.json();
-
         uploadedImages.push({
             name: uniqueName,
             originalName: file.name,
@@ -532,7 +605,9 @@ async function saveEquipamento(e) {
 
         }
 
-        for (const img of uploadedImages) {
+        const validUploadedImages = uploadedImages.filter(img => !!img.url);
+
+        for (const img of validUploadedImages) {
 
             await db.createImagem({
 

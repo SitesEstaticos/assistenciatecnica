@@ -306,17 +306,20 @@ function renderOrdensTable(ordens) {
     ordens.forEach(ordem => {
 
         const cliente =
-            allClientes.find(c => c.id === ordem.cliente_id);
+            allClientes.find(c =>
+                String(c.id) === String(ordem.cliente_id)
+            );
 
         const equipamento =
-            allEquipamentos.find(e => e.id === ordem.equipamento_id);
-
+            allEquipamentos.find(e =>
+                String(e.id) === String(ordem.equipamento_id)
+            );
         const row = document.createElement('tr');
 
         row.innerHTML = `
             <td>${ordem.numero_os}</td>
             <td>${cliente?.nome || 'N/A'}</td>
-            <td>${equipamento?.marca} ${equipamento?.modelo}</td>
+           <td>${equipamento ? `${equipamento.marca} ${equipamento.modelo}` : 'N/A'}</td>
             <td>
                 <span class="status-badge status-${ordem.status}">
                     ${getStatusLabel(ordem.status)}

@@ -44,15 +44,9 @@ class DatabaseManager {
 
     async createCliente(cliente) {
 
-        const payload = {
-            ...cliente,
-            criado_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
-        };
-
         const { data, error } = await this.supabase
             .from('clientes')
-            .insert(payload)
+            .insert(cliente)
             .select()
             .single();
 
@@ -133,15 +127,9 @@ class DatabaseManager {
 
     async createEquipamento(equipamento) {
 
-        const payload = {
-            ...equipamento,
-            criado_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
-        };
-
         const { data, error } = await this.supabase
             .from('equipamentos')
-            .insert(payload)
+            .insert(equipamento)
             .select()
             .single();
 
@@ -177,20 +165,17 @@ class DatabaseManager {
 
         return true;
     }
+
+
     // ============================================
     // IMAGENS
     // ============================================
 
     async createImagem(imagem) {
 
-        const payload = {
-            ...imagem,
-            criado_em: new Date().toISOString()
-        };
-
         const { data, error } = await this.supabase
             .from('imagens_equipamento')
-            .insert(payload)
+            .insert(imagem)
             .select()
             .single();
 
@@ -217,7 +202,7 @@ class DatabaseManager {
             .from('imagens_equipamento')
             .select('*')
             .eq('equipamento_id', equipamentoId)
-            .order('criado_em', { ascending: false });
+            .order('data_upload', { ascending: false });
 
         if (error) throw error;
 
@@ -230,7 +215,7 @@ class DatabaseManager {
             .from('imagens_equipamento')
             .select('*')
             .eq('ordem_id', ordemId)
-            .order('criado_em', { ascending: false });
+            .order('data_upload', { ascending: false });
 
         if (error) throw error;
 
@@ -304,13 +289,9 @@ class DatabaseManager {
 
     async createOrdemServico(ordem) {
 
-        const numeroOS = `OS-${Date.now()}`;
-
         const payload = {
-            numero_os: numeroOS,
-            ...ordem,
-            criado_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
+            numero_os: `OS-${Date.now()}`,
+            ...ordem
         };
 
         const { data, error } = await this.supabase
@@ -354,7 +335,7 @@ class DatabaseManager {
 
 
     // ============================================
-    // PEÇAS / ESTOQUE
+    // PEÇAS
     // ============================================
 
     async getPecas() {
@@ -384,15 +365,9 @@ class DatabaseManager {
 
     async createPeca(peca) {
 
-        const payload = {
-            ...peca,
-            criado_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
-        };
-
         const { data, error } = await this.supabase
             .from('pecas')
-            .insert(payload)
+            .insert(peca)
             .select()
             .single();
 
@@ -465,7 +440,6 @@ class DatabaseManager {
                 osFinalizadas++;
 
                 faturamento += parseFloat(o.valor_servico) || 0;
-
             }
 
         });
@@ -503,9 +477,7 @@ class DatabaseManager {
         (data || []).forEach(o => {
 
             if (counts[o.status] !== undefined) {
-
                 counts[o.status]++;
-
             }
 
         });
@@ -538,7 +510,6 @@ class DatabaseManager {
         (data || []).forEach(o => {
 
             const month = new Date(o.data_recebimento).getMonth();
-
             const key = keys[month];
 
             months[key] += parseFloat(o.valor_servico) || 0;
@@ -549,8 +520,6 @@ class DatabaseManager {
     }
 
 }
-
-
 // ============================================
 // INICIALIZAÇÃO GLOBAL
 // ============================================
@@ -561,4 +530,4 @@ if (!window.supabaseClient) {
 
 window.db = new DatabaseManager(window.supabaseClient);
 
-console.log('DatabaseManager inicializado');
+console.log('DatabaseManager inicializado'); 

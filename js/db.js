@@ -249,107 +249,120 @@ class DatabaseManager {
     }
 
     // ============================================
-// ORDENS DE SERVIÇO
-// ============================================
+    // ORDENS DE SERVIÇO
+    // ============================================
 
-async getOrdensServico() {
+    async getOrdensServico() {
 
-    const { data, error } = await this.supabase
-        .from('ordens_servico')
-        .select('*')
-        .order('data_recebimento', { ascending: false });
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
+            .order('data_recebimento', { ascending: false });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    return data || [];
-}
+        return data || [];
+    }
 
-async getOrdensServicoByCliente(clienteId) {
+    async getOrdensServicoByCliente(clienteId) {
 
-    const { data: equipamentos, error: errorEquip } = await this.supabase
-        .from('equipamentos')
-        .select('id')
-        .eq('cliente_id', clienteId);
+        const { data: equipamentos, error: errorEquip } = await this.supabase
+            .from('equipamentos')
+            .select('id')
+            .eq('cliente_id', clienteId);
 
-    if (errorEquip) throw errorEquip;
+        if (errorEquip) throw errorEquip;
 
-    const ids = (equipamentos || []).map(e => e.id);
+        const ids = (equipamentos || []).map(e => e.id);
 
-    if (ids.length === 0) return [];
+        if (ids.length === 0) return [];
 
-    const { data, error } = await this.supabase
-        .from('ordens_servico')
-        .select('*')
-        .in('equipamento_id', ids)
-        .order('data_recebimento', { ascending: false });
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
+            .in('equipamento_id', ids)
+            .order('data_recebimento', { ascending: false });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    return data || [];
-}
+        return data || [];
+    }
 
-async getOrdemServicoById(id) {
+    async getOrdensServicoByEquipamento(equipamentoId) {
 
-    const { data, error } = await this.supabase
-        .from('ordens_servico')
-        .select('*')
-        .eq('id', id)
-        .single();
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
+            .eq('equipamento_id', equipamentoId)
+            .order('data_recebimento', { ascending: false });
 
-    if (error) throw error;
+        if (error) throw error;
 
-    return data;
-}
+        return data || [];
+    }
 
-async createOrdemServico(ordem) {
+    async getOrdemServicoById(id) {
 
-    const numeroOS = `OS-${Date.now()}`;
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-    const payload = {
-        numero_os: numeroOS,
-        ...ordem,
-        criado_em: new Date().toISOString(),
-        atualizado_em: new Date().toISOString()
-    };
+        if (error) throw error;
 
-    const { data, error } = await this.supabase
-        .from('ordens_servico')
-        .insert(payload)
-        .select()
-        .single();
+        return data;
+    }
 
-    if (error) throw error;
+    async createOrdemServico(ordem) {
 
-    return data;
-}
+        const numeroOS = `OS-${Date.now()}`;
 
-async updateOrdemServico(id, updates = {}) {
+        const payload = {
+            numero_os: numeroOS,
+            ...ordem,
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+        };
 
-    updates.atualizado_em = new Date().toISOString();
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .insert(payload)
+            .select()
+            .single();
 
-    const { data, error } = await this.supabase
-        .from('ordens_servico')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+        if (error) throw error;
 
-    if (error) throw error;
+        return data;
+    }
 
-    return data;
-}
+    async updateOrdemServico(id, updates = {}) {
 
-async deleteOrdemServico(id) {
+        updates.atualizado_em = new Date().toISOString();
 
-    const { error } = await this.supabase
-        .from('ordens_servico')
-        .delete()
-        .eq('id', id);
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
 
-    if (error) throw error;
+        if (error) throw error;
 
-    return true;
-}
+        return data;
+    }
+
+    async deleteOrdemServico(id) {
+
+        const { error } = await this.supabase
+            .from('ordens_servico')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return true;
+    }
 
 
     // ============================================

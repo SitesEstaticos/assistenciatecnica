@@ -206,11 +206,11 @@ function openEditEquipmentModal(equipamentoId) {
 
     document.getElementById('equipmentSerial').value = equipamento.numero_serie || '';
 
-    document.getElementById('equipmentAccessories').value = equipamento.acessorios || '';
+    document.getElementById('equipmentAccessories').value = equipamento.acessorios_entregues || '';
 
-    document.getElementById('equipmentCondition').value = equipamento.condicao_fisica || '';
+    document.getElementById('equipmentCondition').value = equipamento.estado_fisico || '';
 
-    document.getElementById('equipmentPassword').value = equipamento.senha || '';
+    document.getElementById('equipmentPassword').value = equipamento.senha_equipamento || '';
 
     document.getElementById('equipmentNotes').value = equipamento.observacoes || '';
 
@@ -232,9 +232,9 @@ async function saveEquipamento(e) {
         marca: document.getElementById('equipmentBrand').value,
         modelo: document.getElementById('equipmentModel').value,
         numero_serie: document.getElementById('equipmentSerial').value,
-        acessorios: document.getElementById('equipmentAccessories').value,
-        condicao_fisica: document.getElementById('equipmentCondition').value,
-        senha: document.getElementById('equipmentPassword').value,
+        acessorios_entregues: document.getElementById('equipmentAccessories').value,
+        estado_fisico: document.getElementById('equipmentCondition').value,
+        senha_equipamento: document.getElementById('equipmentPassword').value,
         observacoes: document.getElementById('equipmentNotes').value
 
     };
@@ -287,6 +287,14 @@ async function deleteEquipamento(equipamentoId) {
         return;
 
     try {
+
+        // verifica se existem ordens de serviço para este equipamento
+        const ordens = await db.getOrdensServicoByEquipamento(equipamentoId);
+
+        if (ordens && ordens.length > 0) {
+            alert('Não é possível excluir este equipamento pois existem ordens de serviço vinculadas.');
+            return;
+        }
 
         await db.deleteEquipamento(equipamentoId);
 

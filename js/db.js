@@ -184,7 +184,7 @@ class DatabaseManager {
 
         const payload = {
             ...imagem,
-            criado_em: new Date().toISOString()
+            data_upload: new Date().toISOString()
         };
 
         const { data, error } = await this.supabase

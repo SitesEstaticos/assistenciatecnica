@@ -256,8 +256,10 @@ async function saveEquipamento(e) {
                 await db.createImagem({
 
                     equipamento_id: novoEquipamento.id,
-                    url: img.url,
-                    descricao: 'Imagem do equipamento'
+                    url_imagem: img.url,
+                    tipo_imagem: 'recebimento',
+                    descricao_tecnica: 'Imagem do equipamento',
+                    tecnico_responsavel: auth.getUserEmail()
 
                 });
 

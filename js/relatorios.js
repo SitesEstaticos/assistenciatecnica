@@ -16,9 +16,9 @@ async function initRelatoriosPage() {
 
         document.getElementById('filterMonth').value = monthString;
 
-        await loadReports();
-
         setupEventListeners();
+
+        await loadReports();
 
     } catch (error) {
 
@@ -50,7 +50,7 @@ async function loadReports() {
             ordensServico.filter((o) => {
 
                 const orderDate =
-                    new Date(o.data_entrada);
+                    new Date(o.data_recebimento);
 
                 return (
                     orderDate.getFullYear() === parseInt(year) &&
@@ -147,7 +147,7 @@ async function loadFinancialTable(
                 document.createElement('tr');
 
             row.innerHTML = `
-                <td>${formatDate(ordem.data_entrada)}</td>
+                <td>${formatDate(ordem.data_recebimento)}</td>
                 <td>${ordem.numero_os}</td>
                 <td>${cliente?.nome || 'N/A'}</td>
                 <td>${equipamento?.marca} ${equipamento?.modelo}</td>
@@ -268,7 +268,7 @@ function initCharts(orders) {
             orders.forEach((o) => {
 
                 const date =
-                    new Date(o.data_entrada)
+                    new Date(o.data_recebimento)
                         .toLocaleDateString('pt-BR');
 
                 if (!dailyMap[date])
@@ -385,11 +385,10 @@ function setupEventListeners() {
     const applyFiltersBtn =
         document.getElementById('applyFiltersBtn');
 
-    if (applyFiltersBtn)
-        applyFiltersBtn.addEventListener(
-            'click',
-            loadReports
-        );
+    if (applyFiltersBtn) {
+        applyFiltersBtn.removeEventListener('click', loadReports);
+        applyFiltersBtn.addEventListener('click', loadReports);
+    }
 
     const exportBtn =
         document.getElementById('exportBtn');
@@ -403,11 +402,10 @@ function setupEventListeners() {
     const filterMonth =
         document.getElementById('filterMonth');
 
-    if (filterMonth)
-        filterMonth.addEventListener(
-            'change',
-            loadReports
-        );
+    if (filterMonth) {
+        filterMonth.removeEventListener('change', loadReports);
+        filterMonth.addEventListener('change', loadReports);
+    }
 
 }
 
@@ -431,7 +429,7 @@ async function exportReports() {
             ordensServico.filter((o) => {
 
                 const orderDate =
-                    new Date(o.data_entrada);
+                    new Date(o.data_recebimento);
 
                 return (
                     orderDate.getFullYear() === parseInt(year) &&
@@ -451,7 +449,7 @@ async function exportReports() {
                 return {
 
                     'Data':
-                        formatDate(o.data_entrada),
+                        formatDate(o.data_recebimento),
 
                     'Número OS':
                         o.numero_os,

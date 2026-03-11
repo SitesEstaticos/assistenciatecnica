@@ -9,6 +9,11 @@ let allEquipamentos = [];
 let currentOrder = null;
 let currentCliente = null;
 let currentEquipamento = null;
+let allPecas = [];
+let orderPartsBuffer = [];
+let orderImagesBuffer = [];
+let orderPartIdsToDelete = [];
+let orderImageIdsToDelete = [];
 
 async function initOrdensServicoPage() {
 
@@ -18,6 +23,7 @@ async function initOrdensServicoPage() {
 
         await loadClientes();
         await loadEquipamentos();
+        await loadPecas();
         await loadOrdensServico();
 
         setupEventListeners();
@@ -142,7 +148,7 @@ async function loadPartsUsed(ordemId) {
         const row = document.createElement('tr');
 
         row.innerHTML = `
-            <td>${p.nome}</td>
+            <td>${p.pecas?.nome || p.nome || 'Peça'}</td>
             <td>${p.quantidade}</td>
             <td>${formatCurrency(p.valor_unitario)}</td>
             <td>${formatCurrency(total)}</td>
@@ -314,6 +320,41 @@ async function loadEquipamentos() {
     } catch (error) {
 
         Logger.error('Error loading equipamentos', error);
+
+    }
+
+}
+
+
+async function loadPecas() {
+
+    try {
+
+        allPecas = await db.getPecas();
+
+        const partSelect = document.getElementById('orderPartSelect');
+
+        if (!partSelect)
+            return;
+
+        partSelect.innerHTML =
+            '<option value="">Selecione uma peça</option>';
+
+        allPecas.forEach(peca => {
+
+            const option = document.createElement('option');
+
+            option.value = peca.id;
+            option.textContent = peca.nome;
+            option.dataset.valor = peca.valor_venda || 0;
+
+            partSelect.appendChild(option);
+
+        });
+
+    } catch (error) {
+
+        Logger.error('Error loading peças', error);
 
     }
 
@@ -550,6 +591,8 @@ function openNewOrderModal() {
     document.getElementById('modalTitle').textContent =
         'Nova Ordem de Serviço';
 
+    resetOrderAssetsEditor();
+
     document.getElementById('orderModal')
         .classList.remove('hidden');
 
@@ -597,11 +640,18 @@ async function saveOrdenServico(e) {
 
     try {
 
+        let savedOrder;
+
         if (orderId)
-            await db.updateOrdemServico(orderId, ordemData);
+            savedOrder = await db.updateOrdemServico(orderId, ordemData);
 
         else
-            await db.createOrdemServico(ordemData);
+            savedOrder = await db.createOrdemServico(ordemData);
+
+        const ordemIdFinal = savedOrder?.id || orderId;
+
+        await syncOrderParts(ordemIdFinal);
+        await syncOrderImages(ordemIdFinal, ordemData.equipamento_id);
 
         alert(
             orderId
@@ -622,6 +672,304 @@ async function saveOrdenServico(e) {
     }
 
 }
+
+function resetOrderAssetsEditor() {
+
+    orderPartsBuffer = [];
+    orderImagesBuffer = [];
+    orderPartIdsToDelete = [];
+    orderImageIdsToDelete = [];
+
+    renderOrderPartsEditor();
+    renderOrderImagesEditor();
+
+}
+
+async function loadOrderAssetsForEditing(ordemId) {
+
+    resetOrderAssetsEditor();
+
+    const [pecas, imagens] = await Promise.all([
+        db.getPecasByOrdem(ordemId),
+        db.getImagensByOrdem(ordemId)
+    ]);
+
+    orderPartsBuffer = (pecas || []).map(p => ({
+        id: p.id,
+        peca_id: p.peca_id,
+        nome: p.pecas?.nome || p.nome || 'Peça',
+        quantidade: p.quantidade,
+        valor_unitario: p.valor_unitario,
+        existing: true
+    }));
+
+    orderImagesBuffer = (imagens || []).map(img => ({
+        id: img.id,
+        url: img.url_imagem,
+        existing: true
+    }));
+
+    renderOrderPartsEditor();
+    renderOrderImagesEditor();
+
+}
+
+function updateSelectedPartValue() {
+
+    const select = document.getElementById('orderPartSelect');
+    const valueInput = document.getElementById('orderPartValue');
+
+    const selected = select.options[select.selectedIndex];
+
+    if (selected?.dataset?.valor)
+        valueInput.value = selected.dataset.valor;
+
+}
+
+function addPartToOrderBuffer() {
+
+    const partSelect = document.getElementById('orderPartSelect');
+    const qtyInput = document.getElementById('orderPartQty');
+    const valueInput = document.getElementById('orderPartValue');
+
+    const pecaId = partSelect.value;
+    const quantidade = parseInt(qtyInput.value, 10) || 1;
+    const valorUnitario = parseFloat(valueInput.value) || 0;
+
+    if (!pecaId)
+        return alert('Selecione uma peça.');
+
+    const nome = partSelect.options[partSelect.selectedIndex]?.textContent || 'Peça';
+
+    orderPartsBuffer.push({
+        peca_id: pecaId,
+        nome,
+        quantidade,
+        valor_unitario: valorUnitario,
+        existing: false,
+        tempId: `${Date.now()}-${Math.random()}`
+    });
+
+    renderOrderPartsEditor();
+
+}
+
+function removePartFromOrderBuffer(partKey) {
+
+    const part = orderPartsBuffer.find(p => String(p.id || p.tempId) === String(partKey));
+
+    if (!part)
+        return;
+
+    if (part.existing && part.id)
+        orderPartIdsToDelete.push(part.id);
+
+    orderPartsBuffer = orderPartsBuffer.filter(
+        p => String(p.id || p.tempId) !== String(partKey)
+    );
+
+    renderOrderPartsEditor();
+
+}
+
+function renderOrderPartsEditor() {
+
+    const tbody = document.getElementById('orderPartsEditTable');
+
+    if (!tbody)
+        return;
+
+    tbody.innerHTML = '';
+
+    if (orderPartsBuffer.length === 0) {
+
+        tbody.innerHTML =
+            '<tr><td colspan="5" class="text-center">Nenhuma peça adicionada</td></tr>';
+
+        return;
+
+    }
+
+    orderPartsBuffer.forEach(part => {
+
+        const row = document.createElement('tr');
+
+        const key = part.id || part.tempId;
+        const total = (parseFloat(part.valor_unitario) || 0) * (parseInt(part.quantidade, 10) || 0);
+
+        row.innerHTML = `
+            <td>${part.nome}</td>
+            <td>${part.quantidade}</td>
+            <td>${formatCurrency(part.valor_unitario)}</td>
+            <td>${formatCurrency(total)}</td>
+            <td><button type="button" class="btn btn-small btn-danger" onclick="removePartFromOrderBuffer('${key}')">Remover</button></td>
+        `;
+
+        tbody.appendChild(row);
+
+    });
+
+}
+
+function triggerOrderImageSelector() {
+
+    const input = document.getElementById('orderImagesInput');
+
+    if (input)
+        input.click();
+
+}
+
+async function handleOrderImageUpload(event) {
+
+    const files = Array.from(event.target.files || []);
+
+    for (const file of files) {
+
+        const uniqueName = `${file.name}-${file.size}-${file.lastModified}`;
+
+        if (orderImagesBuffer.some(img => img.tempId === uniqueName))
+            continue;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
+        formData.append('return_delete_token', 'true');
+
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
+            { method: 'POST', body: formData }
+        );
+
+        const data = await response.json();
+
+        orderImagesBuffer.push({
+            tempId: uniqueName,
+            url: data.secure_url,
+            deleteToken: data.delete_token || null,
+            publicId: data.public_id || null,
+            existing: false
+        });
+
+    }
+
+    renderOrderImagesEditor();
+    event.target.value = '';
+
+}
+
+async function removeImageFromOrderBuffer(imageKey) {
+
+    const img = orderImagesBuffer.find(i => String(i.id || i.tempId) === String(imageKey));
+
+    if (!img)
+        return;
+
+    if (img.existing && img.id)
+        orderImageIdsToDelete.push(img.id);
+
+    if (!img.existing && window.cloudinary) {
+
+        try {
+
+            if (img.deleteToken)
+                await window.cloudinary.deleteImageByToken(img.deleteToken);
+            else if (img.publicId)
+                await window.cloudinary.deleteImage(img.publicId);
+
+        } catch (error) {
+
+            Logger.error('Erro removendo imagem temporária da OS no Cloudinary', error);
+
+        }
+
+    }
+
+    orderImagesBuffer = orderImagesBuffer.filter(
+        i => String(i.id || i.tempId) !== String(imageKey)
+    );
+
+    renderOrderImagesEditor();
+
+}
+
+function renderOrderImagesEditor() {
+
+    const preview = document.getElementById('orderImagesPreview');
+
+    if (!preview)
+        return;
+
+    preview.innerHTML = '';
+
+    if (orderImagesBuffer.length === 0)
+        return;
+
+    orderImagesBuffer.forEach(img => {
+
+        const key = img.id || img.tempId;
+
+        const div = document.createElement('div');
+        div.className = 'image-preview-item';
+
+        div.innerHTML = `
+            <img src="${img.url}" alt="Imagem OS">
+            <button type="button" onclick="removeImageFromOrderBuffer('${key}')">X</button>
+        `;
+
+        preview.appendChild(div);
+
+    });
+
+}
+
+async function syncOrderParts(ordemId) {
+
+    for (const pecaId of orderPartIdsToDelete)
+        await db.removePecaFromOrdem(pecaId);
+
+    for (const part of orderPartsBuffer) {
+
+        if (part.existing)
+            continue;
+
+        await db.addPecaToOrdem({
+            ordem_id: ordemId,
+            peca_id: part.peca_id,
+            quantidade: part.quantidade,
+            valor_unitario: part.valor_unitario
+        });
+
+    }
+
+}
+
+async function syncOrderImages(ordemId, equipamentoId) {
+
+    for (const imageId of orderImageIdsToDelete)
+        await db.deleteImagem(imageId);
+
+    for (const img of orderImagesBuffer) {
+
+        if (img.existing)
+            continue;
+
+        await db.createImagem({
+            ordem_id: ordemId,
+            equipamento_id: equipamentoId || null,
+            url_imagem: img.url,
+            tipo_imagem: 'ordem_servico',
+            descricao_tecnica: 'Imagem da ordem de serviço',
+            tecnico_responsavel: auth.getUserEmail()
+        });
+
+    }
+
+}
+
+window.removePartFromOrderBuffer = removePartFromOrderBuffer;
+window.removeImageFromOrderBuffer = removeImageFromOrderBuffer;
+
 
 async function deleteOrdenServico(ordemId) {
 

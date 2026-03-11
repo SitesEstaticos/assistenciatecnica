@@ -180,11 +180,12 @@ class DatabaseManager {
     // ============================================
     // IMAGENS
     // ============================================
+
     async createImagem(imagem) {
 
         const payload = {
             ...imagem,
-            data_upload: new Date().toISOString()
+            criado_em: new Date().toISOString()
         };
 
         const { data, error } = await this.supabase
@@ -196,6 +197,18 @@ class DatabaseManager {
         if (error) throw error;
 
         return data;
+    }
+
+    async deleteImagem(id) {
+
+        const { error } = await this.supabase
+            .from('imagens_equipamento')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return true;
     }
 
     async getImagensByEquipamento(equipamentoId) {
@@ -211,43 +224,18 @@ class DatabaseManager {
         return data || [];
     }
 
-    async getImagensByEquipamento(equipamentoId) {
-
-        const { data, error } = await this.supabase
-            .from('imagens_equipamento')
-            .select('*')
-            .eq('equipamento_id', equipamentoId);
-
-        if (error) throw error;
-
-        return data || [];
-    }
-
     async getImagensByOrdem(ordemId) {
 
         const { data, error } = await this.supabase
             .from('imagens_equipamento')
             .select('*')
-            .eq('ordem_id', ordemId);
+            .eq('ordem_id', ordemId)
+            .order('criado_em', { ascending: false });
 
         if (error) throw error;
 
         return data || [];
     }
-
-    async createImagem(imagem) {
-
-        const { data, error } = await this.supabase
-            .from('imagens_equipamento')
-            .insert(imagem)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        return data;
-    }
-
     // ============================================
     // ORDENS DE SERVIÇO
     // ============================================

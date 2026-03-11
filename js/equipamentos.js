@@ -6,6 +6,7 @@ let currentEquipmentId = null;
 let allEquipamentos = [];
 let allClientes = [];
 let uploadedImages = [];
+let imagensExistentes = [];
 
 async function initEquipamentosPage() {
 
@@ -33,8 +34,6 @@ async function loadEquipamentos() {
         allEquipamentos = await db.getEquipamentos();
 
         renderEquipamentosTable(allEquipamentos);
-
-        Logger.log('Equipamentos loaded:', allEquipamentos.length);
 
     } catch (error) {
 
@@ -147,16 +146,6 @@ function setupEventListeners() {
 
     }
 
-    ['closeEquipmentModal', 'cancelEquipmentBtn', 'closeDetailsModal', 'closeDetailsBtn']
-        .forEach(id => {
-
-            const elem = document.getElementById(id);
-
-            if (elem)
-                elem.addEventListener('click', closeModal);
-
-        });
-
     const equipmentForm = document.getElementById('equipmentForm');
 
     if (equipmentForm)
@@ -174,11 +163,9 @@ function openNewEquipmentModal() {
     currentEquipmentId = null;
 
     uploadedImages = [];
-
-    document.getElementById('equipmentId').value = '';
+    imagensExistentes = [];
 
     document.getElementById('equipmentForm').reset();
-
     document.getElementById('imagePreview').innerHTML = '';
 
     document.getElementById('modalTitle').textContent = 'Novo Equipamento';
@@ -187,36 +174,63 @@ function openNewEquipmentModal() {
 
 }
 
-function openEditEquipmentModal(equipamentoId) {
+async function openEditEquipmentModal(equipamentoId) {
 
     currentEquipmentId = equipamentoId;
 
-    const equipamento = allEquipamentos.find(e => e.id === equipamentoId);
+    const equipamento = await db.getEquipamentoById(equipamentoId);
 
-    if (!equipamento)
-        return alert('Equipamento não encontrado.');
-
-    document.getElementById('equipmentId').value = equipamento.id;
+    imagensExistentes = await db.getImagensByEquipamento(equipamentoId);
 
     document.getElementById('equipmentClient').value = equipamento.cliente_id;
-
     document.getElementById('equipmentBrand').value = equipamento.marca;
-
     document.getElementById('equipmentModel').value = equipamento.modelo;
-
     document.getElementById('equipmentSerial').value = equipamento.numero_serie || '';
-
     document.getElementById('equipmentAccessories').value = equipamento.acessorios_entregues || '';
-
     document.getElementById('equipmentCondition').value = equipamento.estado_fisico || '';
-
     document.getElementById('equipmentPassword').value = equipamento.senha_equipamento || '';
-
     document.getElementById('equipmentNotes').value = equipamento.observacoes || '';
+
+    renderExistingImages();
 
     document.getElementById('modalTitle').textContent = 'Editar Equipamento';
 
     document.getElementById('equipmentModal').classList.remove('hidden');
+
+}
+
+function renderExistingImages() {
+
+    const preview = document.getElementById('imagePreview');
+
+    preview.innerHTML = '';
+
+    imagensExistentes.forEach(img => {
+
+        const div = document.createElement('div');
+        div.className = 'image-preview-item';
+
+        div.innerHTML = `
+            <img src="${img.url_imagem}">
+            <button onclick="removeExistingImage('${img.id}')">X</button>
+        `;
+
+        preview.appendChild(div);
+
+    });
+
+}
+
+async function removeExistingImage(imageId) {
+
+    if (!confirm('Remover esta imagem?'))
+        return;
+
+    await db.deleteImagem(imageId);
+
+    imagensExistentes = imagensExistentes.filter(i => i.id !== imageId);
+
+    renderExistingImages();
 
 }
 
@@ -226,35 +240,63 @@ async function handleImageUpload(event) {
 
     for (const file of files) {
 
-        try {
+        const reader = new FileReader();
 
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CONFIG.CLOUDINARY.uploadPreset);
+        reader.onload = function (e) {
 
-            const response = await fetch(
-                `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY.cloudName}/image/upload`,
-                {
-                    method: 'POST',
-                    body: formData
-                }
-            );
+            const preview = document.getElementById('imagePreview');
 
-            const data = await response.json();
+            const div = document.createElement('div');
+            div.className = 'image-preview-item';
 
-            uploadedImages.push({
-                url: data.secure_url
-            });
+            div.innerHTML = `
+                <img src="${e.target.result}">
+                <button onclick="removeNewImage('${file.name}')">X</button>
+            `;
 
-        } catch (error) {
+            preview.appendChild(div);
 
-            Logger.error('Erro ao enviar imagem', error);
+        };
 
-        }
+        reader.readAsDataURL(file);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', CONFIG.CLOUDINARY.uploadPreset);
+
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY.cloudName}/image/upload`,
+            {
+                method: 'POST',
+                body: formData
+            }
+        );
+
+        const data = await response.json();
+
+        uploadedImages.push({
+            name: file.name,
+            url: data.secure_url
+        });
 
     }
 
-    console.log('Imagens carregadas:', uploadedImages);
+}
+
+function removeNewImage(fileName) {
+
+    uploadedImages = uploadedImages.filter(img => img.name !== fileName);
+
+    const preview = document.getElementById('imagePreview');
+
+    const items = preview.querySelectorAll('.image-preview-item');
+
+    items.forEach(item => {
+
+        if (item.innerHTML.includes(fileName))
+            item.remove();
+
+    });
 
 }
 
@@ -262,7 +304,7 @@ async function saveEquipamento(e) {
 
     e.preventDefault();
 
-    const equipmentId = document.getElementById('equipmentId').value;
+    const equipmentId = currentEquipmentId;
 
     const equipamentoData = {
 
@@ -279,33 +321,37 @@ async function saveEquipamento(e) {
 
     try {
 
+        let equipamentoIdFinal;
+
         if (equipmentId) {
 
             await db.updateEquipamento(equipmentId, equipamentoData);
 
-            alert('Equipamento atualizado com sucesso!');
+            equipamentoIdFinal = equipmentId;
 
         } else {
 
             const novoEquipamento = await db.createEquipamento(equipamentoData);
 
-            for (const img of uploadedImages) {
-
-                await db.createImagem({
-
-                    equipamento_id: novoEquipamento.id,
-                    url_imagem: img.url,
-                    tipo_imagem: 'recebimento',
-                    descricao_tecnica: 'Imagem do equipamento',
-                    tecnico_responsavel: auth.getUserEmail()
-
-                });
-
-            }
-
-            alert('Equipamento criado com sucesso!');
+            equipamentoIdFinal = novoEquipamento.id;
 
         }
+
+        for (const img of uploadedImages) {
+
+            await db.createImagem({
+
+                equipamento_id: equipamentoIdFinal,
+                url_imagem: img.url,
+                tipo_imagem: 'recebimento',
+                descricao_tecnica: 'Imagem do equipamento',
+                tecnico_responsavel: auth.getUserEmail()
+
+            });
+
+        }
+
+        alert('Equipamento salvo com sucesso!');
 
         closeModal();
 
@@ -332,7 +378,7 @@ async function viewEquipmentDetails(equipamentoId) {
         const imagens = await db.getImagensByEquipamento(equipamentoId);
 
         document.getElementById('detailsTitle').textContent =
-            `Detalhes do Equipamento - ${equipamento.marca} ${equipamento.modelo}`;
+            `Detalhes - ${equipamento.marca} ${equipamento.modelo}`;
 
         document.getElementById('detailClient').textContent =
             cliente?.nome || 'N/A';
@@ -346,44 +392,26 @@ async function viewEquipmentDetails(equipamentoId) {
         document.getElementById('detailSerial').textContent =
             equipamento.numero_serie || 'N/A';
 
-        document.getElementById('detailAccessories').textContent =
-            equipamento.acessorios_entregues || 'N/A';
-
-        document.getElementById('detailCondition').textContent =
-            equipamento.estado_fisico || 'N/A';
-
-        document.getElementById('detailNotes').textContent =
-            equipamento.observacoes || 'N/A';
-
         const gallery = document.getElementById('equipmentGallery');
 
         gallery.innerHTML = '';
 
-        if (!imagens || imagens.length === 0) {
+        imagens.forEach(img => {
 
-            gallery.innerHTML =
-                '<p class="text-center">Nenhuma imagem registrada</p>';
+            const item = document.createElement('div');
 
-        } else {
+            item.className = 'image-gallery-item';
 
-            imagens.forEach(img => {
+            item.innerHTML =
+                `<img src="${img.url_imagem}">`;
 
-                const item = document.createElement('div');
+            item.addEventListener('click', () =>
+                window.open(img.url_imagem, '_blank')
+            );
 
-                item.className = 'image-gallery-item';
+            gallery.appendChild(item);
 
-                item.innerHTML =
-                    `<img src="${img.url_imagem}" alt="${img.descricao_tecnica || 'Imagem'}">`;
-
-                item.addEventListener('click', () =>
-                    window.open(img.url_imagem, '_blank')
-                );
-
-                gallery.appendChild(item);
-
-            });
-
-        }
+        });
 
         document.getElementById('equipmentDetailsModal')
             .classList.remove('hidden');
@@ -391,8 +419,6 @@ async function viewEquipmentDetails(equipamentoId) {
     } catch (error) {
 
         Logger.error('Error loading equipment details', error);
-
-        alert('Erro ao carregar detalhes do equipamento: ' + error.message);
 
     }
 

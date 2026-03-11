@@ -256,10 +256,8 @@ async function saveEquipamento(e) {
                 await db.createImagem({
 
                     equipamento_id: novoEquipamento.id,
-                    url_imagem: img.url,
-                    tipo_imagem: 'recebimento',
-                    descricao_tecnica: 'Imagem do equipamento',
-                    tecnico_responsavel: auth.getUserEmail()
+                    url: img.url,
+                    descricao: 'Imagem do equipamento'
 
                 });
 
@@ -358,10 +356,10 @@ async function viewEquipmentDetails(equipamentoId) {
                 item.className = 'image-gallery-item';
 
                 item.innerHTML =
-                    `<img src="${img.url_imagem}" alt="${img.tipo_imagem}">`;
+                    `<img src="${img.url}" alt="${img.descricao}">`;
 
                 item.addEventListener('click', () =>
-                    window.open(img.url_imagem, '_blank')
+                    window.open(img.url, '_blank')
                 );
 
                 gallery.appendChild(item);

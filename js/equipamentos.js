@@ -165,9 +165,10 @@ function setupEventListeners() {
 
     const imageInput = document.getElementById('equipmentImages');
 
-    if (imageInput)
+    if (imageInput) {
+        imageInput.removeEventListener('change', handleImageUpload);
         imageInput.addEventListener('change', handleImageUpload);
-
+    }
     const closeBtn = document.getElementById('closeEquipmentModal');
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
 
@@ -309,7 +310,7 @@ async function handleImageUpload(event) {
         });
 
     }
-
+    event.target.value = '';
 }
 
 function removeNewImage(fileName) {

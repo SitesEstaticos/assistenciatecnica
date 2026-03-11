@@ -160,7 +160,33 @@ async function loadOrderImages(ordemId) {
 
     gallery.innerHTML = '';
 
-    const imagens = await db.getImagensByOrdem(ordemId);
+    const ordem = await db.getOrdemServicoById(ordemId);
+
+    if (!ordem) {
+
+        gallery.innerHTML =
+            '<p class="text-center">Ordem de serviço não encontrada</p>';
+
+        return;
+
+    }
+
+    const [imagensDaOs, imagensDoEquipamento] = await Promise.all([
+        db.getImagensByOrdem(ordemId),
+        db.getImagensByEquipamento(ordem.equipamento_id)
+    ]);
+
+    const imagensMap = new Map();
+
+    [...imagensDaOs, ...imagensDoEquipamento]
+        .forEach(img => {
+
+            if (img?.id)
+                imagensMap.set(String(img.id), img);
+
+        });
+
+    const imagens = Array.from(imagensMap.values());
 
     if (!imagens || imagens.length === 0) {
 
@@ -378,9 +404,68 @@ function setupEventListeners() {
         });
 
     const orderForm = document.getElementById('orderForm');
+    const editOrderBtn = document.getElementById('editOrderBtn');
 
     if (orderForm)
         orderForm.addEventListener('submit', saveOrdenServico);
+
+    if (editOrderBtn)
+        editOrderBtn.addEventListener('click', () => {
+
+            document.getElementById('orderDetailsModal')
+                .classList.add('hidden');
+
+            openEditOrderModal(currentOrderId);
+
+        });
+
+}
+
+async function openEditOrderModal(ordemId) {
+
+    if (!ordemId) {
+        alert('Ordem de serviço não encontrada.');
+        return;
+    }
+
+    currentOrderId = ordemId;
+
+    try {
+
+        const ordem = await db.getOrdemServicoById(ordemId);
+
+        if (!ordem) {
+            alert('Ordem de serviço não encontrada.');
+            return;
+        }
+
+        document.getElementById('orderId').value = ordem.id;
+        document.getElementById('orderClient').value = ordem.cliente_id;
+
+        updateEquipmentList();
+
+        document.getElementById('orderEquipment').value = ordem.equipamento_id;
+        document.getElementById('orderStatus').value = ordem.status;
+        document.getElementById('orderDate').value = ordem.data_recebimento || '';
+        document.getElementById('orderProblem').value = ordem.problema_relatado || '';
+        document.getElementById('orderDiagnosis').value = ordem.diagnostico_tecnico || '';
+        document.getElementById('orderServices').value = ordem.servicos_realizados || '';
+        document.getElementById('orderValue').value = ordem.valor_servico || '';
+        document.getElementById('orderTechnician').value = ordem.tecnico_responsavel || '';
+
+        document.getElementById('modalTitle').textContent =
+            'Editar Ordem de Serviço';
+
+        document.getElementById('orderModal')
+            .classList.remove('hidden');
+
+    } catch (error) {
+
+        Logger.error('Error loading ordem for editing', error);
+
+        alert('Erro ao carregar ordem para edição: ' + error.message);
+
+    }
 
 }
 
@@ -590,7 +675,22 @@ async function generateOrderPdf() {
 
         const cliente = await db.getClienteById(ordem.cliente_id);
         const equipamento = await db.getEquipamentoById(ordem.equipamento_id);
-        const imagens = await db.getImagensByOrdem(ordem.id);
+        const [imagensDaOs, imagensDoEquipamento] = await Promise.all([
+            db.getImagensByOrdem(ordem.id),
+            db.getImagensByEquipamento(ordem.equipamento_id)
+        ]);
+
+        const imagensMap = new Map();
+
+        [...imagensDaOs, ...imagensDoEquipamento]
+            .forEach(img => {
+
+                if (img?.id)
+                    imagensMap.set(String(img.id), img);
+
+            });
+
+        const imagens = Array.from(imagensMap.values());
         const pecas = await db.getPecasByOrdem(ordem.id);
 
         await pdfGenerator.generateOrderPDF(

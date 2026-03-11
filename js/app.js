@@ -53,10 +53,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     await waitForAuth();
 
     handleLoginForm();
+    setupLogoutButton();
 
     checkProtectedPages();
 
 });
+
+
+function setupLogoutButton() {
+
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    if (!logoutBtn)
+        return;
+
+    logoutBtn.addEventListener('click', async () => {
+
+        try {
+
+            await auth.logout();
+
+            showNotification('Logout realizado com sucesso', 'success');
+
+            window.location.href = 'index.html';
+
+        } catch (error) {
+
+            Logger.error('Erro ao realizar logout', error);
+
+            showNotification('Erro ao sair. Tente novamente.', 'error');
+
+        }
+
+    });
+
+}
 
 // ============================================
 // LOGIN HANDLER

@@ -134,7 +134,7 @@ function renderOrdensTable(ordens) {
                     ${getStatusLabel(ordem.status)}
                 </span>
             </td>
-            <td>${formatDate(ordem.data_entrada)}</td>
+            <td>${formatDate(ordem.data_recebimento)}</td>
             <td>${formatCurrency(ordem.valor_servico)}</td>
             <td>
                 <button class="btn btn-small btn-primary"
@@ -292,7 +292,7 @@ async function saveOrdenServico(e) {
         status:
             document.getElementById('orderStatus').value,
 
-        data_entrada:
+        data_recebimento:
             document.getElementById('orderDate').value,
 
         problema_relatado:

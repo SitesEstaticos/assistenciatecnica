@@ -6,8 +6,8 @@ class DatabaseManager {
 
     constructor(supabaseClient) {
 
-        if (!supabaseClient) {
-            throw new Error('Supabase client não fornecido');
+        if (!supabaseClient || typeof supabaseClient.from !== 'function') {
+            throw new Error('Supabase client inválido ou não fornecido');
         }
 
         this.supabase = supabaseClient;
@@ -40,6 +40,19 @@ class DatabaseManager {
         if (error) throw error;
 
         return data;
+    }
+
+    async getOrdensServicoByCliente(clienteId) {
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
+            .eq('cliente_id', clienteId)
+            .order('data_recebimento', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
     }
 
     async createCliente(cliente) {
@@ -88,7 +101,6 @@ class DatabaseManager {
 
         return true;
     }
-
 
     // ============================================
     // EQUIPAMENTOS
@@ -178,6 +190,48 @@ class DatabaseManager {
         return true;
     }
 
+    // ============================================
+    // IMAGENS
+    // ============================================
+
+    async createImagem(imagem) {
+
+        const { data, error } = await this.supabase
+            .from('imagens_equipamento')
+            .insert(imagem)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async getImagensByEquipamento(equipamentoId) {
+
+        const { data, error } = await this.supabase
+            .from('imagens_equipamento')
+            .select('*')
+            .eq('equipamento_id', equipamentoId)
+            .order('criado_em', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
+    }
+
+    async getImagensByOrdem(ordemId) {
+
+        const { data, error } = await this.supabase
+            .from('imagens_equipamento')
+            .select('*')
+            .eq('ordem_id', ordemId)
+            .order('criado_em', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
+    }
 
     // ============================================
     // ORDENS DE SERVIÇO
@@ -258,7 +312,6 @@ class DatabaseManager {
         return true;
     }
 
-
     // ============================================
     // PEÇAS / ESTOQUE
     // ============================================
@@ -335,128 +388,7 @@ class DatabaseManager {
         return true;
     }
 
-
-    // ============================================
-    // DASHBOARD
-    // ============================================
-
-    async getStatistics() {
-
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('status, valor_servico');
-
-        if (error) throw error;
-
-        let osAbertas = 0;
-        let osManutencao = 0;
-        let osFinalizadas = 0;
-        let faturamento = 0;
-
-        (data || []).forEach(o => {
-
-            if (o.status === 'recebido') osAbertas++;
-
-            if (
-                o.status === 'em_analise' ||
-                o.status === 'aguardando_peca' ||
-                o.status === 'manutencao'
-            ) osManutencao++;
-
-            if (
-                o.status === 'finalizado' ||
-                o.status === 'entregue'
-            ) {
-
-                osFinalizadas++;
-
-                faturamento += parseFloat(o.valor_servico) || 0;
-
-            }
-
-        });
-
-        return {
-            osAbertas,
-            osManutencao,
-            osFinalizadas,
-            faturamento
-        };
-    }
-
-
-    // ============================================
-    // STATUS DAS ORDENS
-    // ============================================
-
-    async getOrderStatusCounts() {
-
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('status');
-
-        if (error) throw error;
-
-        const counts = {
-            recebido: 0,
-            em_analise: 0,
-            aguardando_peca: 0,
-            manutencao: 0,
-            finalizado: 0,
-            entregue: 0
-        };
-
-        (data || []).forEach(o => {
-
-            if (counts[o.status] !== undefined) {
-
-                counts[o.status]++;
-
-            }
-
-        });
-
-        return counts;
-    }
-
-
-    // ============================================
-    // FATURAMENTO MENSAL
-    // ============================================
-
-    async getMonthlyRevenue() {
-
-        const { data, error } = await this.supabase
-            .from('ordens_servico')
-            .select('valor_servico, data_recebimento')
-            .in('status', ['finalizado', 'entregue']);
-
-        if (error) throw error;
-
-        const months = {
-            jan: 0, fev: 0, mar: 0, abr: 0,
-            mai: 0, jun: 0, jul: 0, ago: 0,
-            set: 0, out: 0, nov: 0, dez: 0
-        };
-
-        const keys = Object.keys(months);
-
-        (data || []).forEach(o => {
-
-            const month = new Date(o.data_recebimento).getMonth();
-
-            const key = keys[month];
-
-            months[key] += parseFloat(o.valor_servico) || 0;
-
-        });
-
-        return months;
-    }
-
 }
-
-
 // ============================================
 // INICIALIZAÇÃO GLOBAL
 // ============================================

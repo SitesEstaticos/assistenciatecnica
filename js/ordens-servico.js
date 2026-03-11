@@ -32,7 +32,53 @@ async function initOrdensServicoPage() {
     }
 
 }
+async function viewOrderDetails(ordemId) {
 
+    try {
+
+        const ordem = await db.getOrdemServicoById(ordemId);
+
+        const cliente = await db.getClienteById(ordem.cliente_id);
+
+        const equipamento = await db.getEquipamentoById(ordem.equipamento_id);
+
+        document.getElementById('detailOrderNumber').textContent =
+            ordem.numero_os || 'N/A';
+
+        document.getElementById('detailClient').textContent =
+            cliente?.nome || 'N/A';
+
+        document.getElementById('detailEquipment').textContent =
+            `${equipamento?.marca || ''} ${equipamento?.modelo || ''}`;
+
+        document.getElementById('detailStatus').textContent =
+            getStatusLabel(ordem.status);
+
+        document.getElementById('detailDate').textContent =
+            formatDate(ordem.data_recebimento);
+
+        document.getElementById('detailValue').textContent =
+            formatCurrency(ordem.valor_servico);
+
+        document.getElementById('detailProblem').textContent =
+            ordem.problema_relatado || 'N/A';
+
+        document.getElementById('detailDiagnosis').textContent =
+            ordem.diagnostico_tecnico || 'N/A';
+
+        document.getElementById('detailServices').textContent =
+            ordem.servicos_realizados || 'N/A';
+
+        document.getElementById('orderDetailsModal')
+            .classList.remove('hidden');
+
+    } catch (error) {
+
+        Logger.error('Error loading order details', error);
+
+    }
+
+}
 async function loadOrdensServico() {
 
     try {
@@ -171,7 +217,7 @@ function setupEventListeners() {
     if (filterStatus)
         filterStatus.addEventListener('change', filterOrders);
 
-    ['closeOrderModal','cancelOrderBtn','closeDetailsModal','closeDetailsBtn']
+    ['closeOrderModal', 'cancelOrderBtn', 'closeDetailsModal', 'closeDetailsBtn']
         .forEach(id => {
 
             const elem = document.getElementById(id);
@@ -204,7 +250,7 @@ function updateEquipmentList() {
 
     const clientEquipments =
         allEquipamentos.filter(e =>
-            e.cliente_id === clientId
+            String(e.cliente_id) === clientId
         );
 
     clientEquipments.forEach(equip => {
@@ -226,8 +272,8 @@ function filterOrders() {
 
     const searchTerm =
         document.getElementById('searchOrders')
-        .value
-        .toLowerCase();
+            .value
+            .toLowerCase();
 
     const statusFilter =
         document.getElementById('filterStatus').value;

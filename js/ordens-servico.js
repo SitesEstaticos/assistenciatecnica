@@ -572,10 +572,25 @@ document.addEventListener('DOMContentLoaded', () => {
         initOrdensServicoPage();
 
 });
-function generateOrderPdf() {
+async function generateOrderPdf() {
 
-    const element = document.getElementById('orderDetailsModal');
+    try {
 
-    pdfGenerator.generateOrderPDF(element);
+        const imagens = await db.getImagensByOrdem(currentOrder.id);
+        const pecas = await db.getPecasByOrdem(currentOrder.id);
+
+        await pdfGenerator.generateOrderPDF(
+            currentOrder,
+            currentCliente,
+            currentEquipamento,
+            imagens,
+            pecas
+        );
+
+    } catch (error) {
+
+        Logger.error("Erro ao gerar PDF", error);
+
+    }
 
 }

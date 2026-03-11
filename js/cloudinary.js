@@ -13,6 +13,8 @@ class CloudinaryManager {
         this.cloudName = config.CLOUD_NAME;
         this.uploadPreset = config.UPLOAD_PRESET;
         this.uploadUrl = `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`;
+        this.apiKey = config.API_KEY || null;
+        this.apiSecret = config.API_SECRET || null;
         this.imageConfig = imageConfig;
 
     }
@@ -177,8 +179,113 @@ class CloudinaryManager {
 
     async deleteImage(publicId) {
 
-        console.warn('Não é possível deletar imagens em site estático. Use o painel Cloudinary.');
-        return true;
+        if (!publicId)
+            return false;
+
+        const apiKey = this.apiKey || window.CLOUDINARY_CONFIG?.API_KEY;
+        const apiSecret = this.apiSecret || window.CLOUDINARY_CONFIG?.API_SECRET;
+
+        if (!apiKey || !apiSecret) {
+            console.warn('Cloudinary API_KEY/API_SECRET não configurados para remoção autenticada.');
+            return false;
+        }
+
+        const timestamp = Math.floor(Date.now() / 1000);
+        const signatureBase = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+        const signature = await this.sha1(signatureBase);
+
+        const formData = new FormData();
+        formData.append('public_id', publicId);
+        formData.append('timestamp', timestamp);
+        formData.append('api_key', apiKey);
+        formData.append('signature', signature);
+
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${this.cloudName}/image/destroy`,
+            {
+                method: 'POST',
+                body: formData
+            }
+        );
+
+        const result = await response.json();
+
+        return result.result === 'ok' || result.result === 'not found';
+
+    }
+
+    async deleteImageByToken(deleteToken) {
+
+        if (!deleteToken)
+            return false;
+
+        const formData = new FormData();
+        formData.append('token', deleteToken);
+
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${this.cloudName}/delete_by_token`,
+            {
+                method: 'POST',
+                body: formData
+            }
+        );
+
+        if (!response.ok)
+            return false;
+
+        const result = await response.json();
+
+        return result.result === 'ok' || result.result === 'not found';
+
+    }
+
+    extractPublicIdFromUrl(url) {
+
+        if (!url)
+            return null;
+
+        try {
+
+            const cleanUrl = url.split('?')[0];
+            const parts = cleanUrl.split('/upload/');
+
+            if (parts.length < 2)
+                return null;
+
+            let path = parts[1];
+
+            path = path.replace(/^v\d+\//, '');
+            path = path.replace(/\.[a-zA-Z0-9]+$/, '');
+
+            return path;
+
+        } catch (error) {
+
+            console.error('Erro ao extrair public_id da URL', error);
+            return null;
+
+        }
+
+    }
+
+    async deleteImageByUrl(url) {
+
+        const publicId = this.extractPublicIdFromUrl(url);
+
+        if (!publicId)
+            return false;
+
+        return this.deleteImage(publicId);
+
+    }
+
+    async sha1(value) {
+
+        const data = new TextEncoder().encode(value);
+        const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+        return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
     }
 
@@ -275,6 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewContainer = document.getElementById('imagePreview');
 
     if (!uploadBtn || !inputFiles) return;
+
+    if (typeof window.handleImageUpload === 'function')
+        return;
 
     uploadBtn.addEventListener('click', () => inputFiles.click());
 

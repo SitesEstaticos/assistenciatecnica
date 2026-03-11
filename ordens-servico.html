@@ -176,6 +176,55 @@
                     <input type="text" id="orderTechnician" name="technician_responsible" placeholder="Nome do técnico">
                 </div>
 
+
+                <div class="form-group full-width">
+                    <label>Peças para Reparo</label>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <select id="orderPartSelect">
+                                <option value="">Selecione uma peça</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="orderPartQty" min="1" value="1" placeholder="Qtd.">
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="orderPartValue" min="0" step="0.01" placeholder="Valor unitário">
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn-secondary" id="addPartBtn">+ Adicionar Peça</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Peça</th>
+                                    <th>Qtd.</th>
+                                    <th>Valor Unit.</th>
+                                    <th>Total</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderPartsEditTable">
+                                <tr>
+                                    <td colspan="5" class="text-center">Nenhuma peça adicionada</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Imagens da Ordem de Serviço</label>
+                    <div class="image-upload-area">
+                        <input type="file" id="orderImagesInput" multiple accept="image/*" class="hidden">
+                        <button type="button" class="btn btn-secondary" id="uploadOrderImagesBtn">📷 Selecionar Imagens</button>
+                        <div id="orderImagesPreview" class="image-preview-grid"></div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelOrderBtn">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar OS</button>

@@ -25,6 +25,24 @@ class PDFGenerator {
         }).format(value || 0);
     }
 
+    async waitForImages(element) {
+
+        const images = Array.from(element.querySelectorAll("img"));
+
+        await Promise.all(images.map((img) => new Promise((resolve) => {
+
+            if (img.complete) {
+                resolve();
+                return;
+            }
+
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+
+        })));
+
+    }
+
     // ======================================
     // GERAR PDF DA ORDEM
     // ======================================
@@ -35,9 +53,14 @@ class PDFGenerator {
 
             const element = document.createElement("div");
 
-            element.style.position = "absolute";
-            element.style.left = "-9999px";
+            element.style.position = "fixed";
+            element.style.top = "0";
+            element.style.left = "0";
             element.style.width = "800px";
+            element.style.background = "#fff";
+            element.style.opacity = "0";
+            element.style.pointerEvents = "none";
+            element.style.zIndex = "-1";
             element.style.fontFamily = "Arial";
             element.style.fontSize = "12px";
             element.style.color = "#333";
@@ -245,6 +268,9 @@ class PDFGenerator {
 
             document.body.appendChild(element);
 
+            await this.waitForImages(element);
+            await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
             const opt = {
 
                 margin: this.margin,
@@ -255,7 +281,8 @@ class PDFGenerator {
 
                 html2canvas: {
                     scale: 2,
-                    useCORS: true
+                    useCORS: true,
+                    backgroundColor: "#ffffff"
                 },
 
                 jsPDF: {
@@ -268,14 +295,17 @@ class PDFGenerator {
 
             await html2pdf().set(opt).from(element).save();
 
-            document.body.removeChild(element);
-
             return true;
 
         } catch (error) {
 
             console.error("PDF generation error", error);
             throw error;
+
+        } finally {
+
+            if (element && element.parentNode)
+                element.parentNode.removeChild(element);
 
         }
 

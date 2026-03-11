@@ -8,6 +8,57 @@ let allClientes = [];
 let uploadedImages = [];
 let imagensExistentes = [];
 
+function getCloudinaryTokenMap() {
+
+    try {
+
+        return JSON.parse(localStorage.getItem('cloudinaryDeleteTokens') || '{}');
+
+    } catch {
+
+        return {};
+
+    }
+
+}
+
+function saveCloudinaryToken(url, token) {
+
+    if (!url || !token)
+        return;
+
+    const map = getCloudinaryTokenMap();
+
+    map[url] = token;
+
+    localStorage.setItem('cloudinaryDeleteTokens', JSON.stringify(map));
+
+}
+
+function removeCloudinaryToken(url) {
+
+    if (!url)
+        return;
+
+    const map = getCloudinaryTokenMap();
+
+    delete map[url];
+
+    localStorage.setItem('cloudinaryDeleteTokens', JSON.stringify(map));
+
+}
+
+function getCloudinaryToken(url) {
+
+    if (!url)
+        return null;
+
+    const map = getCloudinaryTokenMap();
+
+    return map[url] || null;
+
+}
+
 async function initEquipamentosPage() {
 
     try {
@@ -163,7 +214,13 @@ function setupEventListeners() {
     if (equipmentForm)
         equipmentForm.addEventListener('submit', saveEquipamento);
 
+    const uploadBtn = document.getElementById('uploadImagesBtn');
     const imageInput = document.getElementById('equipmentImages');
+
+    if (uploadBtn && imageInput) {
+        uploadBtn.removeEventListener('click', triggerImageSelector);
+        uploadBtn.addEventListener('click', triggerImageSelector);
+    }
 
     if (imageInput) {
         imageInput.removeEventListener('change', handleImageUpload);
@@ -185,6 +242,15 @@ function setupEventListeners() {
             openEditEquipmentModal(currentEquipmentId);
         });
     }
+
+}
+
+function triggerImageSelector() {
+
+    const input = document.getElementById('equipmentImages');
+
+    if (input)
+        input.click();
 
 }
 
@@ -242,7 +308,7 @@ function renderExistingImages() {
 
         div.innerHTML = `
             <img src="${img.url_imagem}">
-            <button onclick="removeExistingImage('${img.id}')">X</button>
+            <button type="button" onclick="removeExistingImage('${img.id}')">X</button>
         `;
 
         preview.appendChild(div);
@@ -256,77 +322,197 @@ async function removeExistingImage(imageId) {
     if (!confirm('Remover esta imagem?'))
         return;
 
-    await db.deleteImagem(imageId);
+    const image = imagensExistentes.find(i => i.id === imageId);
 
-    imagensExistentes = imagensExistentes.filter(i => i.id !== imageId);
+    try {
 
-    renderExistingImages();
+        let deletedInCloudinary = false;
+
+        if (window.cloudinary && image?.url_imagem) {
+
+            const deleteToken = getCloudinaryToken(image.url_imagem);
+
+            if (deleteToken)
+                deletedInCloudinary = await window.cloudinary.deleteImageByToken(deleteToken);
+
+            if (!deletedInCloudinary)
+                deletedInCloudinary = await window.cloudinary.deleteImageByUrl(image.url_imagem);
+
+        }
+
+        if (!deletedInCloudinary)
+            Logger.log('Imagem removida apenas do banco (Cloudinary sem credenciais/token válido).');
+
+        await db.deleteImagem(imageId);
+
+        if (image?.url_imagem)
+            removeCloudinaryToken(image.url_imagem);
+
+        imagensExistentes = imagensExistentes.filter(i => i.id !== imageId);
+
+        renderExistingImages();
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem', error);
+        alert('Erro ao remover imagem: ' + error.message);
+
+    }
+
+}
+
+
+function appendUploadedImagePreview(imageUrl, uniqueName) {
+
+    const preview = document.getElementById('imagePreview');
+
+    const div = document.createElement('div');
+    div.className = 'image-preview-item';
+    div.dataset.fileName = uniqueName;
+
+    div.innerHTML = `
+        <img src="${imageUrl}">
+        <button type="button" onclick="removeNewImage('${uniqueName}')">X</button>
+    `;
+
+    preview.appendChild(div);
+
+}
+
+async function uploadImageToCloudinary(file, includeDeleteToken = true) {
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
+
+    if (includeDeleteToken)
+        formData.append('return_delete_token', 'true');
+
+    const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
+        {
+            method: 'POST',
+            body: formData
+        }
+    );
+
+    let data = {};
+
+    try {
+        data = await response.json();
+    } catch {
+        data = {};
+    }
+
+    if (!response.ok || !data.secure_url)
+        throw new Error(data.error?.message || 'Falha no upload da imagem');
+
+    return data;
 
 }
 
 async function handleImageUpload(event) {
 
-    const files = event.target.files;
+    const files = Array.from(event.target.files || []);
+
+    if (files.length === 0)
+        return;
+
+    const existingNames = new Set(uploadedImages.map(img => img.name));
+    const failedFiles = [];
 
     for (const file of files) {
 
-        const reader = new FileReader();
+        const uniqueName = `${file.name}-${file.size}-${file.lastModified}`;
 
-        reader.onload = function (e) {
+        if (existingNames.has(uniqueName))
+            continue;
 
-            const preview = document.getElementById('imagePreview');
+        try {
 
-            const div = document.createElement('div');
-            div.className = 'image-preview-item';
+            let data;
 
-            div.innerHTML = `
-                <img src="${e.target.result}">
-                <button onclick="removeNewImage('${file.name}')">X</button>
-            `;
-
-            preview.appendChild(div);
-
-        };
-
-        reader.readAsDataURL(file);
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
-
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
-            {
-                method: 'POST',
-                body: formData
+            try {
+                data = await uploadImageToCloudinary(file, true);
+            } catch (error) {
+                Logger.log('Upload com delete_token falhou, tentando fallback simples...', error?.message);
+                data = await uploadImageToCloudinary(file, false);
             }
-        );
 
-        const data = await response.json();
+            uploadedImages.push({
+                name: uniqueName,
+                originalName: file.name,
+                url: data.secure_url,
+                deleteToken: data.delete_token || null,
+                publicId: data.public_id || null
+            });
 
-        uploadedImages.push({
-            name: file.name,
-            url: data.secure_url
-        });
+            if (data.secure_url && data.delete_token)
+                saveCloudinaryToken(data.secure_url, data.delete_token);
+
+            appendUploadedImagePreview(data.secure_url, uniqueName);
+
+            existingNames.add(uniqueName);
+
+        } catch (error) {
+
+            Logger.error('Falha no upload da imagem', { file: file.name, error });
+            failedFiles.push(file.name);
+
+        }
 
     }
+
+    if (failedFiles.length > 0) {
+
+        alert(
+            'Não foi possível enviar as seguintes imagens: ' +
+            failedFiles.join(', ')
+        );
+
+    }
+
     event.target.value = '';
 }
 
-function removeNewImage(fileName) {
+async function removeNewImage(fileName) {
+
+    const image = uploadedImages.find(img => img.name === fileName);
+
+    try {
+
+        if (window.cloudinary && image) {
+
+            let deletedInCloudinary = false;
+
+            if (image.deleteToken)
+                deletedInCloudinary = await window.cloudinary.deleteImageByToken(image.deleteToken);
+
+            if (!deletedInCloudinary && image.publicId)
+                deletedInCloudinary = await window.cloudinary.deleteImage(image.publicId);
+
+            if (!deletedInCloudinary && image.url)
+                await window.cloudinary.deleteImageByUrl(image.url);
+
+            if (image.url)
+                removeCloudinaryToken(image.url);
+
+        }
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem no Cloudinary', error);
+
+    }
 
     uploadedImages = uploadedImages.filter(img => img.name !== fileName);
 
     const preview = document.getElementById('imagePreview');
 
-    const items = preview.querySelectorAll('.image-preview-item');
+    const item = preview.querySelector(`[data-file-name="${fileName}"]`);
 
-    items.forEach(item => {
-
-        if (item.innerHTML.includes(fileName))
-            item.remove();
-
-    });
+    if (item)
+        item.remove();
 
 }
 
@@ -390,7 +576,9 @@ async function saveEquipamento(e) {
 
         }
 
-        for (const img of uploadedImages) {
+        const validUploadedImages = uploadedImages.filter(img => !!img.url);
+
+        for (const img of validUploadedImages) {
 
             await db.createImagem({
 

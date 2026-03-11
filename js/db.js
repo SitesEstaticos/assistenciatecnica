@@ -177,8 +177,62 @@ class DatabaseManager {
 
         return true;
     }
+// ============================================
+// IMAGENS
+// ============================================
+    async createImagem(imagem) {
 
+        const payload = {
+            ...imagem,
+            criado_em: new Date().toISOString()
+        };
 
+        const { data, error } = await this.supabase
+            .from('imagens_equipamento')
+            .insert(payload)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+    async getOrdensServicoByCliente(clienteId) {
+
+        const { data: equipamentos, error: errorEquip } = await this.supabase
+            .from('equipamentos')
+            .select('id')
+            .eq('cliente_id', clienteId);
+
+        if (errorEquip) throw errorEquip;
+
+        const ids = (equipamentos || []).map(e => e.id);
+
+        if (ids.length === 0) return [];
+
+        const { data, error } = await this.supabase
+            .from('ordens_servico')
+            .select('*')
+            .in('equipamento_id', ids)
+            .order('criado_em', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
+    }
+    async getImagensByEquipamento(equipamentoId) {
+
+        const { data, error } = await this.supabase
+            .from('imagens_equipamento')
+            .select('*')
+            .eq('equipamento_id', equipamentoId)
+            .order('criado_em', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
+    }
+    
     // ============================================
     // ORDENS DE SERVIÇO
     // ============================================

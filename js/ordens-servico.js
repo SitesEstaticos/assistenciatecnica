@@ -19,11 +19,16 @@ async function initOrdensServicoPage() {
 
         setupEventListeners();
 
+        document
+            .getElementById('generatePdfBtn')
+            ?.addEventListener('click', generateOrderPdf);
+
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('id');
 
-        if (orderId)
+        if (orderId) {
             viewOrderDetails(orderId);
+        }
 
     } catch (error) {
 
@@ -41,6 +46,10 @@ async function viewOrderDetails(ordemId) {
         const cliente = await db.getClienteById(ordem.cliente_id);
 
         const equipamento = await db.getEquipamentoById(ordem.equipamento_id);
+
+        // =============================
+        // DETALHES PRINCIPAIS
+        // =============================
 
         document.getElementById('detailNumber').textContent =
             ordem.numero_os || 'N/A';
@@ -72,6 +81,28 @@ async function viewOrderDetails(ordemId) {
         document.getElementById('detailServices').textContent =
             ordem.servicos_realizados || 'N/A';
 
+
+        // =============================
+        // PEÇAS UTILIZADAS
+        // =============================
+
+        await loadPartsUsed(ordemId);
+
+
+        // =============================
+        // IMAGENS DA OS
+        // =============================
+
+        await loadOrderImages(ordemId);
+
+
+        // =============================
+        // TIMELINE
+        // =============================
+
+        await loadOrderTimeline(ordemId);
+
+
         document.getElementById('orderDetailsModal')
             .classList.remove('hidden');
 
@@ -82,6 +113,114 @@ async function viewOrderDetails(ordemId) {
     }
 
 }
+async function loadPartsUsed(ordemId) {
+
+    const partsTable = document.getElementById('partsTable');
+
+    partsTable.innerHTML = '';
+
+    const pecas = await db.getPecasByOrdem(ordemId);
+
+    if (!pecas || pecas.length === 0) {
+
+        partsTable.innerHTML =
+            '<tr><td colspan="4" class="text-center">Nenhuma peça registrada</td></tr>';
+
+        return;
+
+    }
+
+    pecas.forEach(p => {
+
+        const total = p.quantidade * p.valor_unitario;
+
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+            <td>${p.nome}</td>
+            <td>${p.quantidade}</td>
+            <td>${formatCurrency(p.valor_unitario)}</td>
+            <td>${formatCurrency(total)}</td>
+        `;
+
+        partsTable.appendChild(row);
+
+    });
+
+}
+
+async function loadOrderImages(ordemId) {
+
+    const gallery = document.getElementById('orderGallery');
+
+    gallery.innerHTML = '';
+
+    const imagens = await db.getImagensByOrdem(ordemId);
+
+    if (!imagens || imagens.length === 0) {
+
+        gallery.innerHTML =
+            '<p class="text-center">Nenhuma imagem registrada</p>';
+
+        return;
+
+    }
+
+    imagens.forEach(img => {
+
+        const div = document.createElement('div');
+
+        div.className = 'gallery-item';
+
+        div.innerHTML = `
+            <img src="${img.url_imagem}" alt="Imagem OS">
+        `;
+
+        gallery.appendChild(div);
+
+    });
+
+}
+
+async function loadOrderTimeline(ordemId) {
+
+    const timeline = document.getElementById('orderTimeline');
+
+    timeline.innerHTML = '';
+
+    const historico = await db.getHistoricoByOrdem(ordemId);
+
+    if (!historico || historico.length === 0) {
+
+        timeline.innerHTML =
+            '<p class="text-center">Nenhum histórico registrado</p>';
+
+        return;
+
+    }
+
+    historico.forEach(h => {
+
+        const div = document.createElement('div');
+
+        div.className = 'timeline-item';
+
+        div.innerHTML = `
+            <div class="timeline-date">
+                ${formatDate(h.data_evento)}
+            </div>
+
+            <div class="timeline-content">
+                Status alterado para <strong>${getStatusLabel(h.status)}</strong>
+            </div>
+        `;
+
+        timeline.appendChild(div);
+
+    });
+
+}
+
 async function loadOrdensServico() {
 
     try {
@@ -430,3 +569,10 @@ document.addEventListener('DOMContentLoaded', () => {
         initOrdensServicoPage();
 
 });
+function generateOrderPdf() {
+
+    const element = document.getElementById('orderDetailsModal');
+
+    PDFGenerator.generate(element);
+
+}

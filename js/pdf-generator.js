@@ -42,7 +42,12 @@ class PDFGenerator {
             element.style.fontSize = "12px";
             element.style.color = "#333";
 
-            const totalPecas = pecas.reduce((sum, p) => sum + (p.total || 0), 0);
+            // CORREÇÃO DO CÁLCULO DAS PEÇAS
+            const totalPecas = pecas.reduce((sum, p) => {
+                const total = (p.quantidade || 0) * (p.valor_unitario || 0);
+                return sum + total;
+            }, 0);
+
             const totalServico = ordem.valor_servico || 0;
             const totalFinal = totalServico + totalPecas;
 
@@ -56,7 +61,7 @@ class PDFGenerator {
 
                 <div style="text-align:right">
                     <h2 style="margin:0;color:#1a535c">ORDEM DE SERVIÇO</h2>
-                    <strong>Nº ${ordem.numero_os}</strong>
+                    <strong>Nº ${ordem.numero_os || "N/A"}</strong>
                 </div>
 
             </div>
@@ -106,7 +111,7 @@ class PDFGenerator {
 
             <tr>
             <td><strong>Data de recebimento:</strong> ${this.safeDate(ordem.data_recebimento)}</td>
-            <td><strong>Status:</strong> ${ordem.status}</td>
+            <td><strong>Status:</strong> ${ordem.status || "N/A"}</td>
             </tr>
 
             <tr>
@@ -156,14 +161,20 @@ class PDFGenerator {
 
             <tbody>
 
-            ${pecas.map(p => `
-            <tr>
-            <td style="padding:6px;border:1px solid #ddd">${p.nome}</td>
-            <td style="padding:6px;border:1px solid #ddd">${p.quantidade}</td>
-            <td style="padding:6px;border:1px solid #ddd">${this.safeCurrency(p.valor_unitario)}</td>
-            <td style="padding:6px;border:1px solid #ddd">${this.safeCurrency(p.quantidade * p.valor_unitario)}</td>
-            </tr>
-            `).join("")}
+            ${pecas.map(p => {
+
+                const total = (p.quantidade || 0) * (p.valor_unitario || 0);
+
+                return `
+                <tr>
+                <td style="padding:6px;border:1px solid #ddd">${p.nome || "Peça"}</td>
+                <td style="padding:6px;border:1px solid #ddd">${p.quantidade || 0}</td>
+                <td style="padding:6px;border:1px solid #ddd">${this.safeCurrency(p.valor_unitario)}</td>
+                <td style="padding:6px;border:1px solid #ddd">${this.safeCurrency(total)}</td>
+                </tr>
+                `;
+
+            }).join("")}
 
             </tbody>
 
@@ -238,7 +249,7 @@ class PDFGenerator {
 
                 margin: this.margin,
 
-                filename: `OS-${ordem.numero_os}.pdf`,
+                filename: `OS-${ordem.numero_os || "sem-numero"}.pdf`,
 
                 image: { type: "jpeg", quality: 0.95 },
 

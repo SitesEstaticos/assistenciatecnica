@@ -42,7 +42,7 @@ async function viewOrderDetails(ordemId) {
 
         const equipamento = await db.getEquipamentoById(ordem.equipamento_id);
 
-        document.getElementById('detailOrderNumber').textContent =
+        document.getElementById('detailNumber').textContent =
             ordem.numero_os || 'N/A';
 
         document.getElementById('detailClient').textContent =
@@ -56,6 +56,9 @@ async function viewOrderDetails(ordemId) {
 
         document.getElementById('detailDate').textContent =
             formatDate(ordem.data_recebimento);
+
+        document.getElementById('detailTechnician').textContent =
+            ordem.tecnico_responsavel || 'N/A';
 
         document.getElementById('detailValue').textContent =
             formatCurrency(ordem.valor_servico);

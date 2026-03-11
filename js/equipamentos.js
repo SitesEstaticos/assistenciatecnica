@@ -103,11 +103,23 @@ function renderEquipamentosTable(equipamentos) {
             <td>${equipamento.modelo}</td>
             <td>${equipamento.numero_serie || 'N/A'}</td>
             <td>${equipamento.estado_fisico || 'N/A'}</td>
-            <td>
-                <button class="btn btn-small btn-primary"
+            <td class="actions">
+
+                <button class="btn btn-small btn-secondary"
                     onclick="viewEquipmentDetails('${equipamento.id}')">
                     Ver
                 </button>
+
+                <button class="btn btn-small btn-primary"
+                    onclick="openEditEquipmentModal('${equipamento.id}')">
+                    Editar
+                </button>
+
+                <button class="btn btn-small btn-danger"
+                    onclick="deleteEquipamento('${equipamento.id}')">
+                    Excluir
+                </button>
+
             </td>
         `;
 
@@ -155,6 +167,23 @@ function setupEventListeners() {
 
     if (imageInput)
         imageInput.addEventListener('change', handleImageUpload);
+
+    const closeBtn = document.getElementById('closeEquipmentModal');
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    const cancelBtn = document.getElementById('cancelEquipmentBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    const closeDetailsBtn = document.getElementById('closeDetailsBtn');
+    if (closeDetailsBtn) closeDetailsBtn.addEventListener('click', closeModal);
+
+    const editBtn = document.getElementById('editEquipmentBtn');
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            closeModal();
+            openEditEquipmentModal(currentEquipmentId);
+        });
+    }
 
 }
 
@@ -300,6 +329,29 @@ function removeNewImage(fileName) {
 
 }
 
+async function deleteEquipamento(id) {
+
+    if (!confirm('Tem certeza que deseja excluir este equipamento?'))
+        return;
+
+    try {
+
+        await db.deleteEquipamento(id);
+
+        alert('Equipamento excluído com sucesso');
+
+        await loadEquipamentos();
+
+    } catch (error) {
+
+        Logger.error('Erro ao excluir equipamento', error);
+
+        alert('Erro ao excluir equipamento');
+
+    }
+
+}
+
 async function saveEquipamento(e) {
 
     e.preventDefault();
@@ -370,6 +422,8 @@ async function saveEquipamento(e) {
 async function viewEquipmentDetails(equipamentoId) {
 
     try {
+
+        currentEquipmentId = equipamentoId;
 
         const equipamento = await db.getEquipamentoById(equipamentoId);
 

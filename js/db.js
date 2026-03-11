@@ -518,6 +518,84 @@ class DatabaseManager {
 
         return months;
     }
+    // ============================================
+    // PEÇAS UTILIZADAS NAS ORDENS
+    // ============================================
+    async getPecasByOrdem(ordemId) {
+
+        const { data, error } = await this.supabase
+            .from('pecas_utilizadas')
+            .select(`
+            id,
+            ordem_id,
+            peca_id,
+            quantidade,
+            valor_unitario,
+            pecas (
+                id,
+                nome
+            )
+        `)
+            .eq('ordem_id', ordemId);
+
+        if (error) {
+            Logger.error('Erro ao buscar peças da ordem', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    async addPecaToOrdem(peca) {
+
+        const { data, error } = await this.supabase
+            .from('pecas_utilizadas')
+            .insert(peca)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    async removePecaFromOrdem(id) {
+        const { error } = await this.supabase
+            .from('pecas_utilizadas')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return true;
+    }
+
+    async getHistoricoByOrdem(ordemId) {
+
+        const { data, error } = await this.supabase
+            .from('historico_ordem_servico')
+            .select('*')
+            .eq('ordem_id', ordemId)
+            .order('criado_em', { ascending: false });
+
+        if (error) throw error;
+
+        return data || [];
+    }
+
+    async addHistoricoStatus(historico) {
+
+        const { data, error } = await this.supabase
+            .from('historico_ordem_servico')
+            .insert(historico)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+    
 
 }
 // ============================================

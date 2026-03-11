@@ -103,16 +103,11 @@ function renderEquipamentosTable(equipamentos) {
             <td>${equipamento.marca}</td>
             <td>${equipamento.modelo}</td>
             <td>${equipamento.numero_serie || 'N/A'}</td>
-            <td>${equipamento.condicao_fisica || 'N/A'}</td>
+            <td>${equipamento.estado_fisico || 'N/A'}</td>
             <td>
                 <button class="btn btn-small btn-primary"
                     onclick="viewEquipmentDetails('${equipamento.id}')">
                     Ver
-                </button>
-
-                <button class="btn btn-small btn-danger"
-                    onclick="deleteEquipamento('${equipamento.id}')">
-                    Deletar
                 </button>
             </td>
         `;
@@ -167,6 +162,11 @@ function setupEventListeners() {
     if (equipmentForm)
         equipmentForm.addEventListener('submit', saveEquipamento);
 
+    const imageInput = document.getElementById('equipmentImages');
+
+    if (imageInput)
+        imageInput.addEventListener('change', handleImageUpload);
+
 }
 
 function openNewEquipmentModal() {
@@ -217,6 +217,44 @@ function openEditEquipmentModal(equipamentoId) {
     document.getElementById('modalTitle').textContent = 'Editar Equipamento';
 
     document.getElementById('equipmentModal').classList.remove('hidden');
+
+}
+
+async function handleImageUpload(event) {
+
+    const files = event.target.files;
+
+    for (const file of files) {
+
+        try {
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CONFIG.CLOUDINARY.uploadPreset);
+
+            const response = await fetch(
+                `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY.cloudName}/image/upload`,
+                {
+                    method: 'POST',
+                    body: formData
+                }
+            );
+
+            const data = await response.json();
+
+            uploadedImages.push({
+                url: data.secure_url
+            });
+
+        } catch (error) {
+
+            Logger.error('Erro ao enviar imagem', error);
+
+        }
+
+    }
+
+    console.log('Imagens carregadas:', uploadedImages);
 
 }
 
@@ -283,37 +321,6 @@ async function saveEquipamento(e) {
 
 }
 
-async function deleteEquipamento(equipamentoId) {
-
-    if (!confirm('Tem certeza que deseja deletar este equipamento?'))
-        return;
-
-    try {
-
-        // verifica se existem ordens de serviço para este equipamento
-        const ordens = await db.getOrdensServicoByEquipamento(equipamentoId);
-
-        if (ordens && ordens.length > 0) {
-            alert('Não é possível excluir este equipamento pois existem ordens de serviço vinculadas.');
-            return;
-        }
-
-        await db.deleteEquipamento(equipamentoId);
-
-        alert('Equipamento deletado com sucesso!');
-
-        await loadEquipamentos();
-
-    } catch (error) {
-
-        Logger.error('Error deleting equipamento', error);
-
-        alert('Erro ao deletar equipamento: ' + error.message);
-
-    }
-
-}
-
 async function viewEquipmentDetails(equipamentoId) {
 
     try {
@@ -340,10 +347,10 @@ async function viewEquipmentDetails(equipamentoId) {
             equipamento.numero_serie || 'N/A';
 
         document.getElementById('detailAccessories').textContent =
-            equipamento.acessorios || 'N/A';
+            equipamento.acessorios_entregues || 'N/A';
 
         document.getElementById('detailCondition').textContent =
-            equipamento.condicao_fisica || 'N/A';
+            equipamento.estado_fisico || 'N/A';
 
         document.getElementById('detailNotes').textContent =
             equipamento.observacoes || 'N/A';
@@ -366,10 +373,10 @@ async function viewEquipmentDetails(equipamentoId) {
                 item.className = 'image-gallery-item';
 
                 item.innerHTML =
-                    `<img src="${img.url}" alt="${img.descricao}">`;
+                    `<img src="${img.url_imagem}" alt="${img.descricao_tecnica || 'Imagem'}">`;
 
                 item.addEventListener('click', () =>
-                    window.open(img.url, '_blank')
+                    window.open(img.url_imagem, '_blank')
                 );
 
                 gallery.appendChild(item);

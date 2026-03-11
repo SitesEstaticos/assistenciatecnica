@@ -446,32 +446,9 @@ function setupEventListeners() {
 
     const orderForm = document.getElementById('orderForm');
     const editOrderBtn = document.getElementById('editOrderBtn');
-    const addPartBtn = document.getElementById('addPartBtn');
-    const partSelect = document.getElementById('orderPartSelect');
-    const uploadOrderImagesBtn = document.getElementById('uploadOrderImagesBtn');
-    const orderImagesInput = document.getElementById('orderImagesInput');
 
     if (orderForm)
         orderForm.addEventListener('submit', saveOrdenServico);
-
-
-    if (addPartBtn) {
-        addPartBtn.removeEventListener('click', addPartToOrderBuffer);
-        addPartBtn.addEventListener('click', addPartToOrderBuffer);
-    }
-
-    if (partSelect) {
-        partSelect.removeEventListener('change', updateSelectedPartValue);
-        partSelect.addEventListener('change', updateSelectedPartValue);
-    }
-
-    if (uploadOrderImagesBtn && orderImagesInput) {
-        uploadOrderImagesBtn.removeEventListener('click', triggerOrderImageSelector);
-        uploadOrderImagesBtn.addEventListener('click', triggerOrderImageSelector);
-
-        orderImagesInput.removeEventListener('change', handleOrderImageUpload);
-        orderImagesInput.addEventListener('change', handleOrderImageUpload);
-    }
 
     if (editOrderBtn)
         editOrderBtn.addEventListener('click', () => {
@@ -516,8 +493,6 @@ async function openEditOrderModal(ordemId) {
         document.getElementById('orderServices').value = ordem.servicos_realizados || '';
         document.getElementById('orderValue').value = ordem.valor_servico || '';
         document.getElementById('orderTechnician').value = ordem.tecnico_responsavel || '';
-
-        await loadOrderAssetsForEditing(ordem.id);
 
         document.getElementById('modalTitle').textContent =
             'Editar Ordem de Serviço';

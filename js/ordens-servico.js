@@ -576,6 +576,6 @@ function generateOrderPdf() {
 
     const element = document.getElementById('orderDetailsModal');
 
-    pdfGenerator.generate(element);
+    pdfGenerator.generateOrderPDF(element);
 
 }

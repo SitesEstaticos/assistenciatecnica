@@ -57,12 +57,13 @@ class PDFGenerator {
 
             element.style.position = "fixed";
             element.style.top = "0";
-            element.style.left = "0";
+            element.style.left = "-10000px";
             element.style.width = "800px";
+            element.style.padding = "20px";
             element.style.background = "#fff";
-            element.style.opacity = "0";
+            element.style.opacity = "1";
             element.style.pointerEvents = "none";
-            element.style.zIndex = "-1";
+            element.style.zIndex = "1";
             element.style.fontFamily = "Arial";
             element.style.fontSize = "12px";
             element.style.color = "#333";

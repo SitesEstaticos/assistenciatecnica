@@ -7,6 +7,7 @@ let allEquipamentos = [];
 let allClientes = [];
 let uploadedImages = [];
 let imagensExistentes = [];
+let cloudinaryDeleteTokenSupported = true;
 
 function getCloudinaryTokenMap() {
 
@@ -428,29 +429,21 @@ async function handleImageUpload(event) {
         if (existingNames.has(uniqueName))
             continue;
 
-        const reader = new FileReader();
-
-        if (existingNames.has(uniqueName))
-            continue;
-
         try {
 
             let data;
 
             try {
-                data = await uploadImageToCloudinary(file, true);
+                data = await uploadImageToCloudinary(file, cloudinaryDeleteTokenSupported);
             } catch (error) {
-                Logger.log('Upload com delete_token falhou, tentando fallback simples...', error?.message);
-                data = await uploadImageToCloudinary(file, false);
+                if (cloudinaryDeleteTokenSupported) {
+                    Logger.log('Upload com delete_token falhou, tentando fallback simples...', error?.message);
+                    cloudinaryDeleteTokenSupported = false;
+                    data = await uploadImageToCloudinary(file, false);
+                } else {
+                    throw error;
+                }
             }
-            const div = document.createElement('div');
-            div.className = 'image-preview-item';
-            div.dataset.fileName = uniqueName;
-
-            div.innerHTML = `
-                <img src="${e.target.result}">
-                <button type="button" onclick="removeNewImage('${uniqueName}')">X</button>
-            `;
 
             uploadedImages.push({
                 name: uniqueName,
@@ -466,10 +459,6 @@ async function handleImageUpload(event) {
             appendUploadedImagePreview(data.secure_url, uniqueName);
 
             existingNames.add(uniqueName);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
-        formData.append('return_delete_token', 'true');
 
         } catch (error) {
 
@@ -486,18 +475,6 @@ async function handleImageUpload(event) {
             'Não foi possível enviar as seguintes imagens: ' +
             failedFiles.join(', ')
         );
-        uploadedImages.push({
-            name: uniqueName,
-            originalName: file.name,
-            url: data.secure_url,
-            deleteToken: data.delete_token || null,
-            publicId: data.public_id || null
-        });
-
-        if (data.secure_url && data.delete_token)
-            saveCloudinaryToken(data.secure_url, data.delete_token);
-
-        existingNames.add(uniqueName);
 
     }
 

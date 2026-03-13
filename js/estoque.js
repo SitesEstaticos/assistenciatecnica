@@ -5,6 +5,20 @@
 let currentPartId = null;
 let allPecas = [];
 
+
+function getPecaQuantidade(peca) {
+
+    if (typeof peca?.quantidade_estoque === 'number')
+        return peca.quantidade_estoque;
+
+    if (typeof peca?.quantidade === 'number')
+        return peca.quantidade;
+
+    return parseInt(peca?.quantidade_estoque ?? peca?.quantidade ?? 0, 10) || 0;
+
+}
+
+
 async function initEstoquePage() {
 
     try {
@@ -62,14 +76,15 @@ function renderPartsTable(pecas) {
 
     pecas.forEach(peca => {
 
-        const totalValue = peca.quantidade * peca.valor_compra;
+        const quantidade = getPecaQuantidade(peca);
+        const totalValue = quantidade * peca.valor_compra;
 
         const row = document.createElement('tr');
 
         row.innerHTML = `
             <td>${peca.nome}</td>
             <td>${peca.codigo || 'N/A'}</td>
-            <td>${peca.quantidade}</td>
+            <td>${quantidade}</td>
             <td>${formatCurrency(peca.valor_compra)}</td>
             <td>${formatCurrency(peca.valor_venda)}</td>
             <td>${formatCurrency(totalValue)}</td>
@@ -175,11 +190,11 @@ function updateStockStatistics() {
     const totalParts = allPecas.length;
 
     const lowStockParts = allPecas.filter(p =>
-        p.quantidade <= (p.quantidade_minima || 5)
+        getPecaQuantidade(p) <= (p.quantidade_minima || 5)
     ).length;
 
     const totalValue = allPecas.reduce((sum, p) =>
-        sum + (p.quantidade * p.valor_compra)
+        sum + (getPecaQuantidade(p) * p.valor_compra)
         , 0);
 
     document.getElementById('totalParts').textContent = totalParts;
@@ -220,7 +235,7 @@ function openEditPartModal(pecaId) {
 
     document.getElementById('partCode').value = peca.codigo || '';
 
-    document.getElementById('partQuantity').value = peca.quantidade;
+    document.getElementById('partQuantity').value = getPecaQuantidade(peca);
 
     document.getElementById('partMinQuantity').value =
         peca.quantidade_minima || '';
@@ -243,18 +258,22 @@ async function savePeca(e) {
 
     const pecaId = document.getElementById('partId').value;
 
+    const quantidade = parseInt(
+        document.getElementById('partQuantity').value,
+        10
+    ) || 0;
+
     const pecaData = {
 
         nome: document.getElementById('partName').value,
 
         codigo: document.getElementById('partCode').value,
 
-        quantidade: parseInt(
-            document.getElementById('partQuantity').value
-        ),
+        quantidade_estoque: quantidade,
 
         quantidade_minima: parseInt(
-            document.getElementById('partMinQuantity').value
+            document.getElementById('partMinQuantity').value,
+            10
         ) || 5,
 
         valor_compra: parseFloat(
@@ -334,7 +353,7 @@ async function viewPartDetails(pecaId) {
         currentPartId = pecaId;
 
         const totalValue =
-            peca.quantidade * peca.valor_compra;
+            getPecaQuantidade(peca) * peca.valor_compra;
 
         const margin =
             peca.valor_compra > 0
@@ -352,7 +371,7 @@ async function viewPartDetails(pecaId) {
             peca.codigo || 'N/A';
 
         document.getElementById('detailQuantity').textContent =
-            peca.quantidade;
+            getPecaQuantidade(peca);
 
         document.getElementById('detailMinQuantity').textContent =
             peca.quantidade_minima || 'N/A';

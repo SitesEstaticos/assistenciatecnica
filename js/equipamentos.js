@@ -7,6 +7,7 @@ let allEquipamentos = [];
 let allClientes = [];
 let uploadedImages = [];
 let imagensExistentes = [];
+let cloudinaryDeleteTokenSupported = true;
 
 function getCloudinaryTokenMap() {
 
@@ -433,10 +434,15 @@ async function handleImageUpload(event) {
             let data;
 
             try {
-                data = await uploadImageToCloudinary(file, true);
+                data = await uploadImageToCloudinary(file, cloudinaryDeleteTokenSupported);
             } catch (error) {
-                Logger.log('Upload com delete_token falhou, tentando fallback simples...', error?.message);
-                data = await uploadImageToCloudinary(file, false);
+                if (cloudinaryDeleteTokenSupported) {
+                    Logger.log('Upload com delete_token falhou, tentando fallback simples...', error?.message);
+                    cloudinaryDeleteTokenSupported = false;
+                    data = await uploadImageToCloudinary(file, false);
+                } else {
+                    throw error;
+                }
             }
 
             uploadedImages.push({

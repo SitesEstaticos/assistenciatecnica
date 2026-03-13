@@ -14,6 +14,7 @@ let orderPartsBuffer = [];
 let orderImagesBuffer = [];
 let orderPartIdsToDelete = [];
 let orderImageIdsToDelete = [];
+let cloudinaryDeleteTokenSupported = true;
 
 async function initOrdensServicoPage() {
 
@@ -845,9 +846,40 @@ function triggerOrderImageSelector() {
 
 }
 
+
+async function uploadOrderImageToCloudinary(file, includeDeleteToken = true) {
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
+
+    if (includeDeleteToken)
+        formData.append('return_delete_token', 'true');
+
+    const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+    );
+
+    let data = {};
+
+    try {
+        data = await response.json();
+    } catch {
+        data = {};
+    }
+
+    if (!response.ok || !data.secure_url)
+        throw new Error(data.error?.message || 'Falha no upload da imagem da ordem');
+
+    return data;
+
+}
+
 async function handleOrderImageUpload(event) {
 
     const files = Array.from(event.target.files || []);
+    const failedFiles = [];
 
     for (const file of files) {
 
@@ -856,29 +888,46 @@ async function handleOrderImageUpload(event) {
         if (orderImagesBuffer.some(img => img.tempId === uniqueName))
             continue;
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
-        formData.append('return_delete_token', 'true');
+        try {
 
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
-            { method: 'POST', body: formData }
-        );
+            let data;
 
-        const data = await response.json();
+            try {
+                data = await uploadOrderImageToCloudinary(file, cloudinaryDeleteTokenSupported);
+            } catch (error) {
 
-        orderImagesBuffer.push({
-            tempId: uniqueName,
-            url: data.secure_url,
-            deleteToken: data.delete_token || null,
-            publicId: data.public_id || null,
-            existing: false
-        });
+                if (cloudinaryDeleteTokenSupported) {
+                    Logger.log('Upload com delete_token falhou na OS, tentando fallback simples...', error?.message);
+                    cloudinaryDeleteTokenSupported = false;
+                    data = await uploadOrderImageToCloudinary(file, false);
+                } else {
+                    throw error;
+                }
+
+            }
+
+            orderImagesBuffer.push({
+                tempId: uniqueName,
+                url: data.secure_url,
+                deleteToken: data.delete_token || null,
+                publicId: data.public_id || null,
+                existing: false
+            });
+
+        } catch (error) {
+
+            Logger.error('Falha no upload da imagem da OS', { file: file.name, error });
+            failedFiles.push(file.name);
+
+        }
 
     }
 
     renderOrderImagesEditor();
+
+    if (failedFiles.length > 0)
+        alert('Não foi possível enviar as seguintes imagens: ' + failedFiles.join(', '));
+
     event.target.value = '';
 
 }
@@ -932,6 +981,9 @@ function renderOrderImagesEditor() {
 
     orderImagesBuffer.forEach(img => {
 
+        if (!img.url)
+            return;
+
         const key = img.id || img.tempId;
 
         const div = document.createElement('div');
@@ -976,7 +1028,7 @@ async function syncOrderImages(ordemId, equipamentoId) {
 
     for (const img of orderImagesBuffer) {
 
-        if (img.existing)
+        if (img.existing || !img.url)
             continue;
 
         await db.createImagem({

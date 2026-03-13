@@ -6,7 +6,8 @@ class PDFGenerator {
 
     constructor() {
         this.margin = 10;
-        this.lineHeight = 6;
+        this.lineHeight = 6.8;
+        this.sectionGap = 4.5;
     }
 
     safeDate(date) {
@@ -48,7 +49,7 @@ class PDFGenerator {
 
         doc.setTextColor(40, 40, 40);
 
-        return y + 7;
+        return y + 9;
     }
 
     addLabelValue(doc, y, label, value) {
@@ -74,7 +75,7 @@ class PDFGenerator {
         doc.setFontSize(10);
         doc.text(lines, this.margin, y);
 
-        return y + (lines.length * 4.8) + 2;
+        return y + (lines.length * 5.2) + 5;
     }
 
     addPecasTable(doc, y, pecas = []) {
@@ -250,38 +251,38 @@ class PDFGenerator {
         y = this.addLabelValue(doc, y, 'CPF', cliente?.cpf || 'N/A');
         y = this.addLabelValue(doc, y, 'Endereço', cliente?.endereco || 'N/A');
 
-        y += 2;
+        y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'EQUIPAMENTO');
         y = this.addLabelValue(doc, y, 'Marca', equipamento?.marca || 'N/A');
         y = this.addLabelValue(doc, y, 'Modelo', equipamento?.modelo || 'N/A');
         y = this.addLabelValue(doc, y, 'Nº Série', equipamento?.numero_serie || 'N/A');
         y = this.addLabelValue(doc, y, 'Acessórios', equipamento?.acessorios_entregues || 'N/A');
 
-        y += 2;
+        y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'INFORMAÇÕES DA ORDEM');
         y = this.addLabelValue(doc, y, 'Data de recebimento', this.safeDate(ordem?.data_recebimento));
         y = this.addLabelValue(doc, y, 'Status', ordem?.status || 'N/A');
         y = this.addLabelValue(doc, y, 'Técnico', ordem?.tecnico_responsavel || 'N/A');
 
-        y += 2;
+        y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'PROBLEMA RELATADO');
         y = this.addParagraph(doc, y, ordem?.problema_relatado || 'Não informado');
 
-        y += 2;
+        y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'DIAGNÓSTICO TÉCNICO');
         y = this.addParagraph(doc, y, ordem?.diagnostico_tecnico || 'Não informado');
 
-        y += 2;
+        y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'SERVIÇOS REALIZADOS');
         y = this.addParagraph(doc, y, ordem?.servicos_realizados || 'Não informado');
 
         if ((pecas || []).length) {
-            y += 2;
+            y += this.sectionGap;
             y = this.addSectionTitle(doc, y, 'PEÇAS UTILIZADAS');
             y = this.addPecasTable(doc, y, pecas);
         }
 
-        y += 2;
+        y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'RESUMO FINANCEIRO');
         y = this.addLabelValue(doc, y, 'Serviço', this.safeCurrency(totalServico));
         y = this.addLabelValue(doc, y, 'Peças', this.safeCurrency(totalPecas));
@@ -291,7 +292,7 @@ class PDFGenerator {
         doc.setFont('helvetica', 'normal');
 
         if ((imagens || []).length) {
-            y += 2;
+            y += this.sectionGap;
             y = this.addSectionTitle(doc, y, 'IMAGENS');
             y = await this.addImagesGrid(doc, y, imagens);
         }

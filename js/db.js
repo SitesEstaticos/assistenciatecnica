@@ -375,13 +375,13 @@ class DatabaseManager {
 
         let { data, error } = await tryInsert(payload);
 
-        if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade_estoque'")) {
+        if (
+            error?.code === 'PGRST204' &&
+            error?.message?.includes("'quantidade_estoque'") &&
+            Object.prototype.hasOwnProperty.call(payload, 'quantidade_estoque')
+        ) {
             payload.quantidade = payload.quantidade_estoque;
             delete payload.quantidade_estoque;
-            ({ data, error } = await tryInsert(payload));
-        } else if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade'")) {
-            payload.quantidade_estoque = payload.quantidade;
-            delete payload.quantidade;
             ({ data, error } = await tryInsert(payload));
         }
 
@@ -407,13 +407,13 @@ class DatabaseManager {
         let payload = { ...payloadBase };
         let { data, error } = await tryUpdate(payload);
 
-        if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade_estoque'")) {
+        if (
+            error?.code === 'PGRST204' &&
+            error?.message?.includes("'quantidade_estoque'") &&
+            Object.prototype.hasOwnProperty.call(payload, 'quantidade_estoque')
+        ) {
             payload.quantidade = payload.quantidade_estoque;
             delete payload.quantidade_estoque;
-            ({ data, error } = await tryUpdate(payload));
-        } else if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade'")) {
-            payload.quantidade_estoque = payload.quantidade;
-            delete payload.quantidade;
             ({ data, error } = await tryUpdate(payload));
         }
 

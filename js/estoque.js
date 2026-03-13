@@ -269,7 +269,7 @@ async function savePeca(e) {
 
         codigo: document.getElementById('partCode').value,
 
-        quantidade_estoque: quantidade,
+        quantidade: quantidade,
 
         quantidade_minima: parseInt(
             document.getElementById('partMinQuantity').value,

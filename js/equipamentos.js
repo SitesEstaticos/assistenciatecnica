@@ -274,6 +274,7 @@ function openNewEquipmentModal() {
 async function openEditEquipmentModal(equipamentoId) {
 
     currentEquipmentId = equipamentoId;
+    uploadedImages = [];
 
     const equipamento = await db.getEquipamentoById(equipamentoId);
 
@@ -302,7 +303,16 @@ function renderExistingImages() {
 
     preview.innerHTML = '';
 
-    imagensExistentes.forEach(img => {
+    const imagensValidas = (imagensExistentes || []).filter(img => !!img?.url_imagem);
+
+    if (imagensValidas.length === 0) {
+
+        preview.innerHTML = '<p class="text-muted">Nenhuma imagem vinculada ao equipamento.</p>';
+        return;
+
+    }
+
+    imagensValidas.forEach(img => {
 
         const div = document.createElement('div');
         div.className = 'image-preview-item';
@@ -641,11 +651,25 @@ async function viewEquipmentDetails(equipamentoId) {
         document.getElementById('detailSerial').textContent =
             equipamento.numero_serie || 'N/A';
 
+        document.getElementById('detailAccessories').textContent =
+            equipamento.acessorios_entregues || 'N/A';
+
+        document.getElementById('detailCondition').textContent =
+            equipamento.estado_fisico || 'N/A';
+
+        document.getElementById('detailNotes').textContent =
+            equipamento.observacoes || 'N/A';
+
         const gallery = document.getElementById('equipmentGallery');
+
+        const imagensValidas = (imagens || []).filter(img => !!img?.url_imagem);
 
         gallery.innerHTML = '';
 
-        imagens.forEach(img => {
+        if (imagensValidas.length === 0)
+            gallery.innerHTML = '<p class="text-center">Nenhuma imagem registrada</p>';
+
+        imagensValidas.forEach(img => {
 
             const item = document.createElement('div');
 

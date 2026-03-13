@@ -715,9 +715,14 @@ async function loadOrderAssetsForEditing(ordemId) {
 
     resetOrderAssetsEditor();
 
-    const [pecas, imagens] = await Promise.all([
+    const ordem = await db.getOrdemServicoById(ordemId);
+
+    const [pecas, imagensDaOs, imagensDoEquipamento] = await Promise.all([
         db.getPecasByOrdem(ordemId),
-        db.getImagensByOrdem(ordemId)
+        db.getImagensByOrdem(ordemId),
+        ordem?.equipamento_id
+            ? db.getImagensByEquipamento(ordem.equipamento_id)
+            : Promise.resolve([])
     ]);
 
     orderPartsBuffer = (pecas || []).map(p => ({
@@ -729,11 +734,23 @@ async function loadOrderAssetsForEditing(ordemId) {
         existing: true
     }));
 
-    orderImagesBuffer = (imagens || []).map(img => ({
-        id: img.id,
-        url: img.url_imagem,
-        existing: true
-    }));
+    const imagensMap = new Map();
+
+    [...(imagensDaOs || []), ...(imagensDoEquipamento || [])]
+        .forEach(img => {
+
+            if (!img?.id || !img?.url_imagem)
+                return;
+
+            imagensMap.set(String(img.id), {
+                id: img.id,
+                url: img.url_imagem,
+                existing: true
+            });
+
+        });
+
+    orderImagesBuffer = Array.from(imagensMap.values());
 
     renderOrderPartsEditor();
     renderOrderImagesEditor();

@@ -1,316 +1,309 @@
 // ============================================
-// PDF GENERATOR MODULE - PROFESSIONAL VERSION
-// COMPATÍVEL COM SCHEMA SUPABASE
+// PDF GENERATOR MODULE - jsPDF VERSION
 // ============================================
 
 class PDFGenerator {
 
     constructor() {
         this.margin = 10;
+        this.lineHeight = 6;
     }
 
     safeDate(date) {
-        if (!date) return "N/A";
-        return new Date(date).toLocaleDateString("pt-BR");
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleDateString('pt-BR');
     }
 
     safeDateTime(date) {
-        return new Date(date).toLocaleString("pt-BR");
+        return new Date(date).toLocaleString('pt-BR');
     }
 
     safeCurrency(value) {
-        return new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL"
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
         }).format(value || 0);
     }
 
-    async waitForImages(element) {
+    ensurePageSpace(doc, y, needed = 10) {
+        const pageHeight = doc.internal.pageSize.getHeight();
 
-        const images = Array.from(element.querySelectorAll("img"));
+        if (y + needed <= pageHeight - this.margin)
+            return y;
 
-        await Promise.all(images.map((img) => new Promise((resolve) => {
-
-            if (img.complete) {
-                resolve();
-                return;
-            }
-
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-
-        })));
-
+        doc.addPage();
+        return this.margin;
     }
 
-    // ======================================
-    // GERAR PDF DA ORDEM
-    // ======================================
+    addSectionTitle(doc, y, title) {
+        y = this.ensurePageSpace(doc, y, 10);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(26, 83, 92);
+        doc.text(String(title || ''), this.margin, y);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.line(this.margin, y + 1.5, 200, y + 1.5);
+
+        doc.setTextColor(40, 40, 40);
+
+        return y + 7;
+    }
+
+    addLabelValue(doc, y, label, value) {
+        y = this.ensurePageSpace(doc, y, this.lineHeight + 1);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(`${label}:`, this.margin, y);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(value ?? 'N/A'), this.margin + 32, y);
+
+        return y + this.lineHeight;
+    }
+
+    addParagraph(doc, y, text) {
+        const content = String(text || 'Não informado');
+        const lines = doc.splitTextToSize(content, 190);
+
+        y = this.ensurePageSpace(doc, y, (lines.length * 4.8) + 4);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text(lines, this.margin, y);
+
+        return y + (lines.length * 4.8) + 2;
+    }
+
+    addPecasTable(doc, y, pecas = []) {
+        if (!pecas.length)
+            return y;
+
+        const colX = [this.margin, 95, 120, 155];
+        const colW = [85, 25, 35, 45];
+
+        y = this.ensurePageSpace(doc, y, 10);
+
+        doc.setFillColor(26, 83, 92);
+        doc.rect(this.margin, y - 4.5, 190, 7, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('Peça', colX[0] + 1, y);
+        doc.text('Qtd', colX[1] + 1, y);
+        doc.text('Valor Unit.', colX[2] + 1, y);
+        doc.text('Total', colX[3] + 1, y);
+
+        doc.setTextColor(40, 40, 40);
+        doc.setFont('helvetica', 'normal');
+
+        let rowY = y + 5;
+
+        pecas.forEach((p) => {
+
+            rowY = this.ensurePageSpace(doc, rowY, 7);
+
+            const qtd = Number(p.quantidade || 0);
+            const valorUnit = Number(p.valor_unitario || 0);
+            const total = qtd * valorUnit;
+
+            const nome = p.pecas?.nome || p.nome || 'Peça';
+            const nomeLines = doc.splitTextToSize(String(nome), colW[0] - 2);
+
+            const rowHeight = Math.max(6, nomeLines.length * 4.2 + 1.5);
+
+            doc.setDrawColor(220, 220, 220);
+            doc.rect(colX[0], rowY - 4.5, colW[0], rowHeight);
+            doc.rect(colX[1], rowY - 4.5, colW[1], rowHeight);
+            doc.rect(colX[2], rowY - 4.5, colW[2], rowHeight);
+            doc.rect(colX[3], rowY - 4.5, colW[3], rowHeight);
+
+            doc.text(nomeLines, colX[0] + 1, rowY - 0.3);
+            doc.text(String(qtd), colX[1] + 1, rowY - 0.3);
+            doc.text(this.safeCurrency(valorUnit), colX[2] + 1, rowY - 0.3);
+            doc.text(this.safeCurrency(total), colX[3] + 1, rowY - 0.3);
+
+            rowY += rowHeight + 1;
+
+        });
+
+        return rowY;
+    }
+
+    async loadImageAsDataUrl(url) {
+        try {
+
+            const response = await fetch(url, { mode: 'cors' });
+            if (!response.ok)
+                return null;
+
+            const blob = await response.blob();
+
+            return await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result || null);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
+
+        } catch {
+
+            return null;
+
+        }
+    }
+
+    async addImagesGrid(doc, y, imagens = []) {
+        const validImages = (imagens || []).filter(img => !!img?.url_imagem);
+
+        if (!validImages.length)
+            return y;
+
+        const cols = 3;
+        const gap = 4;
+        const boxW = (190 - ((cols - 1) * gap)) / cols;
+        const boxH = 42;
+
+        let x = this.margin;
+        let countInRow = 0;
+
+        for (const img of validImages) {
+
+            y = this.ensurePageSpace(doc, y, boxH + 2);
+
+            const dataUrl = await this.loadImageAsDataUrl(img.url_imagem);
+
+            doc.setDrawColor(220, 220, 220);
+            doc.rect(x, y, boxW, boxH);
+
+            if (dataUrl) {
+                try {
+                    doc.addImage(dataUrl, 'JPEG', x + 1, y + 1, boxW - 2, boxH - 2);
+                } catch {
+                    doc.setFontSize(8);
+                    doc.text('Imagem indisponível', x + 3, y + 6);
+                }
+            } else {
+                doc.setFontSize(8);
+                doc.text('Imagem indisponível', x + 3, y + 6);
+            }
+
+            countInRow += 1;
+
+            if (countInRow === cols) {
+                countInRow = 0;
+                x = this.margin;
+                y += boxH + gap;
+            } else {
+                x += boxW + gap;
+            }
+
+        }
+
+        if (countInRow !== 0)
+            y += boxH + gap;
+
+        return y;
+    }
 
     async generateOrderPDF(ordem, cliente, equipamento, imagens = [], pecas = [], empresa = {}) {
 
-        let element = null;
-
-        try {
-
-            element = document.createElement("div");
-
-            element.style.position = "fixed";
-            element.style.top = "0";
-            element.style.left = "-10000px";
-            element.style.width = "800px";
-            element.style.padding = "20px";
-            element.style.background = "#fff";
-            element.style.opacity = "1";
-            element.style.pointerEvents = "none";
-            element.style.zIndex = "1";
-            element.style.fontFamily = "Arial";
-            element.style.fontSize = "12px";
-            element.style.color = "#333";
-
-            // CORREÇÃO DO CÁLCULO DAS PEÇAS
-            const totalPecas = pecas.reduce((sum, p) => {
-                const total = (p.quantidade || 0) * (p.valor_unitario || 0);
-                return sum + total;
-            }, 0);
-
-            const totalServico = ordem.valor_servico || 0;
-            const totalFinal = totalServico + totalPecas;
-
-            element.innerHTML = `
-
-            <div style="border-bottom:2px solid #1a535c;padding-bottom:10px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
-
-                <div>
-                    ${empresa.logo ? `<img src="${empresa.logo}" style="height:60px;">` : ""}
-                </div>
-
-                <div style="text-align:right">
-                    <h2 style="margin:0;color:#1a535c">ORDEM DE SERVIÇO</h2>
-                    <strong>Nº ${ordem.numero_os || "N/A"}</strong>
-                </div>
-
-            </div>
-
-
-            <h3>CLIENTE</h3>
-
-            <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-
-            <tr>
-            <td><strong>Nome:</strong> ${cliente?.nome || "N/A"}</td>
-            <td><strong>Telefone:</strong> ${cliente?.telefone || "N/A"}</td>
-            </tr>
-
-            <tr>
-            <td><strong>Email:</strong> ${cliente?.email || "N/A"}</td>
-            <td><strong>CPF:</strong> ${cliente?.cpf || "N/A"}</td>
-            </tr>
-
-            <tr>
-            <td colspan="2"><strong>Endereço:</strong> ${cliente?.endereco || "N/A"}</td>
-            </tr>
-
-            </table>
-
-
-            <h3>EQUIPAMENTO</h3>
-
-            <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-
-            <tr>
-            <td><strong>Marca:</strong> ${equipamento?.marca || "N/A"}</td>
-            <td><strong>Modelo:</strong> ${equipamento?.modelo || "N/A"}</td>
-            </tr>
-
-            <tr>
-            <td><strong>Nº Série:</strong> ${equipamento?.numero_serie || "N/A"}</td>
-            <td><strong>Acessórios:</strong> ${equipamento?.acessorios_entregues || "N/A"}</td>
-            </tr>
-
-            </table>
-
-
-            <h3>INFORMAÇÕES DO SERVIÇO</h3>
-
-            <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-
-            <tr>
-            <td><strong>Data de recebimento:</strong> ${this.safeDate(ordem.data_recebimento)}</td>
-            <td><strong>Status:</strong> ${ordem.status || "N/A"}</td>
-            </tr>
-
-            <tr>
-            <td colspan="2"><strong>Técnico:</strong> ${ordem.tecnico_responsavel || "N/A"}</td>
-            </tr>
-
-            </table>
-
-
-            <h3>PROBLEMA RELATADO</h3>
-
-            <div style="background:#f6f6f6;padding:10px;margin-bottom:20px">
-            ${ordem.problema_relatado || "Não informado"}
-            </div>
-
-
-            <h3>DIAGNÓSTICO</h3>
-
-            <div style="background:#f6f6f6;padding:10px;margin-bottom:20px">
-            ${ordem.diagnostico_tecnico || "Não informado"}
-            </div>
-
-
-            <h3>SERVIÇOS REALIZADOS</h3>
-
-            <div style="background:#f6f6f6;padding:10px;margin-bottom:20px">
-            ${ordem.servicos_realizados || "Não informado"}
-            </div>
-
-
-            ${pecas.length ? `
-
-            <h3>PEÇAS UTILIZADAS</h3>
-
-            <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-
-            <thead style="background:#1a535c;color:white">
-
-            <tr>
-            <th style="padding:6px">Peça</th>
-            <th style="padding:6px">Qtd</th>
-            <th style="padding:6px">Valor</th>
-            <th style="padding:6px">Total</th>
-            </tr>
-
-            </thead>
-
-            <tbody>
-
-            ${pecas.map(p => {
-
-                const total = (p.quantidade || 0) * (p.valor_unitario || 0);
-
-                return `
-                <tr>
-                <td style="padding:6px;border:1px solid #ddd">${p.nome || "Peça"}</td>
-                <td style="padding:6px;border:1px solid #ddd">${p.quantidade || 0}</td>
-                <td style="padding:6px;border:1px solid #ddd">${this.safeCurrency(p.valor_unitario)}</td>
-                <td style="padding:6px;border:1px solid #ddd">${this.safeCurrency(total)}</td>
-                </tr>
-                `;
-
-            }).join("")}
-
-            </tbody>
-
-            </table>
-
-            ` : ""}
-
-
-            <h3>RESUMO FINANCEIRO</h3>
-
-            <table style="width:300px;border-collapse:collapse;margin-bottom:20px">
-
-            <tr>
-            <td>Serviço</td>
-            <td style="text-align:right">${this.safeCurrency(totalServico)}</td>
-            </tr>
-
-            <tr>
-            <td>Peças</td>
-            <td style="text-align:right">${this.safeCurrency(totalPecas)}</td>
-            </tr>
-
-            <tr style="font-weight:bold;border-top:2px solid #000">
-            <td>Total</td>
-            <td style="text-align:right">${this.safeCurrency(totalFinal)}</td>
-            </tr>
-
-            </table>
-
-
-            ${imagens?.length ? `
-
-            <h3>IMAGENS</h3>
-
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
-
-            ${imagens.map(img => `
-            <div style="border:1px solid #ddd;padding:5px;text-align:center">
-            <img src="${img.url_imagem}" style="max-width:100%">
-            </div>
-            `).join("")}
-
-            </div>
-
-            ` : ""}
-
-
-            <div style="display:flex;justify-content:space-between;margin-top:40px">
-
-            <div style="text-align:center;width:40%">
-            <div style="border-top:1px solid #000;margin-top:40px"></div>
-            Cliente
-            </div>
-
-            <div style="text-align:center;width:40%">
-            <div style="border-top:1px solid #000;margin-top:40px"></div>
-            Técnico
-            </div>
-
-            </div>
-
-
-            <footer style="text-align:center;margin-top:30px;font-size:10px;color:#777">
-            Gerado em ${this.safeDateTime(new Date())}
-            </footer>
-
-            `;
-
-            document.body.appendChild(element);
-
-            await this.waitForImages(element);
-            await new Promise((resolve) => requestAnimationFrame(() => resolve()));
-
-            const opt = {
-
-                margin: this.margin,
-
-                filename: `OS-${ordem.numero_os || "sem-numero"}.pdf`,
-
-                image: { type: "jpeg", quality: 0.95 },
-
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: "#ffffff"
-                },
-
-                jsPDF: {
-                    orientation: "portrait",
-                    unit: "mm",
-                    format: "a4"
-                }
-
-            };
-
-            await html2pdf().set(opt).from(element).save();
-
-            return true;
-
-        } catch (error) {
-
-            console.error("PDF generation error", error);
-            throw error;
-
-        } finally {
-
-            if (element && element.parentNode)
-                element.parentNode.removeChild(element);
-
+        if (!window.jspdf?.jsPDF)
+            throw new Error('Biblioteca jsPDF não encontrada.');
+
+        const doc = new window.jspdf.jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        const totalPecas = (pecas || []).reduce((sum, p) =>
+            sum + (Number(p.quantidade || 0) * Number(p.valor_unitario || 0)), 0
+        );
+
+        const totalServico = Number(ordem?.valor_servico || 0);
+        const totalFinal = totalServico + totalPecas;
+
+        let y = this.margin;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(26, 83, 92);
+        doc.text(empresa?.nome || 'ASSISTÊNCIA TÉCNICA', this.margin, y);
+
+        doc.setFontSize(12);
+        doc.text(`ORDEM DE SERVIÇO Nº ${ordem?.numero_os || 'N/A'}`, 200, y, { align: 'right' });
+
+        y += 4;
+        doc.setDrawColor(26, 83, 92);
+        doc.setLineWidth(0.5);
+        doc.line(this.margin, y, 200, y);
+
+        y += 8;
+        y = this.addSectionTitle(doc, y, 'CLIENTE');
+        y = this.addLabelValue(doc, y, 'Nome', cliente?.nome || 'N/A');
+        y = this.addLabelValue(doc, y, 'Telefone', cliente?.telefone || 'N/A');
+        y = this.addLabelValue(doc, y, 'Email', cliente?.email || 'N/A');
+        y = this.addLabelValue(doc, y, 'CPF', cliente?.cpf || 'N/A');
+        y = this.addLabelValue(doc, y, 'Endereço', cliente?.endereco || 'N/A');
+
+        y += 2;
+        y = this.addSectionTitle(doc, y, 'EQUIPAMENTO');
+        y = this.addLabelValue(doc, y, 'Marca', equipamento?.marca || 'N/A');
+        y = this.addLabelValue(doc, y, 'Modelo', equipamento?.modelo || 'N/A');
+        y = this.addLabelValue(doc, y, 'Nº Série', equipamento?.numero_serie || 'N/A');
+        y = this.addLabelValue(doc, y, 'Acessórios', equipamento?.acessorios_entregues || 'N/A');
+
+        y += 2;
+        y = this.addSectionTitle(doc, y, 'INFORMAÇÕES DA ORDEM');
+        y = this.addLabelValue(doc, y, 'Data de recebimento', this.safeDate(ordem?.data_recebimento));
+        y = this.addLabelValue(doc, y, 'Status', ordem?.status || 'N/A');
+        y = this.addLabelValue(doc, y, 'Técnico', ordem?.tecnico_responsavel || 'N/A');
+
+        y += 2;
+        y = this.addSectionTitle(doc, y, 'PROBLEMA RELATADO');
+        y = this.addParagraph(doc, y, ordem?.problema_relatado || 'Não informado');
+
+        y += 2;
+        y = this.addSectionTitle(doc, y, 'DIAGNÓSTICO TÉCNICO');
+        y = this.addParagraph(doc, y, ordem?.diagnostico_tecnico || 'Não informado');
+
+        y += 2;
+        y = this.addSectionTitle(doc, y, 'SERVIÇOS REALIZADOS');
+        y = this.addParagraph(doc, y, ordem?.servicos_realizados || 'Não informado');
+
+        if ((pecas || []).length) {
+            y += 2;
+            y = this.addSectionTitle(doc, y, 'PEÇAS UTILIZADAS');
+            y = this.addPecasTable(doc, y, pecas);
         }
+
+        y += 2;
+        y = this.addSectionTitle(doc, y, 'RESUMO FINANCEIRO');
+        y = this.addLabelValue(doc, y, 'Serviço', this.safeCurrency(totalServico));
+        y = this.addLabelValue(doc, y, 'Peças', this.safeCurrency(totalPecas));
+
+        doc.setFont('helvetica', 'bold');
+        y = this.addLabelValue(doc, y, 'TOTAL', this.safeCurrency(totalFinal));
+        doc.setFont('helvetica', 'normal');
+
+        if ((imagens || []).length) {
+            y += 2;
+            y = this.addSectionTitle(doc, y, 'IMAGENS');
+            y = await this.addImagesGrid(doc, y, imagens);
+        }
+
+        y = this.ensurePageSpace(doc, y, 20);
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Gerado em ${this.safeDateTime(new Date())}`, this.margin, y + 8);
+
+        doc.save(`OS-${ordem?.numero_os || 'sem-numero'}.pdf`);
+
+        return true;
 
     }
 

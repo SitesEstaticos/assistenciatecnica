@@ -15,6 +15,7 @@ let orderImagesBuffer = [];
 let orderPartIdsToDelete = [];
 let orderImageIdsToDelete = [];
 let cloudinaryDeleteTokenSupported = true;
+let orderDetailsImages = [];
 
 async function initOrdensServicoPage() {
 
@@ -185,17 +186,19 @@ async function loadOrderImages(ordemId) {
 
     const imagensMap = new Map();
 
-    [...imagensDaOs, ...imagensDoEquipamento]
+    [...(imagensDaOs || []), ...(imagensDoEquipamento || [])]
         .forEach(img => {
 
-            if (img?.id)
-                imagensMap.set(String(img.id), img);
+            if (!img?.id || !img?.url_imagem)
+                return;
+
+            imagensMap.set(String(img.id), img);
 
         });
 
-    const imagens = Array.from(imagensMap.values());
+    orderDetailsImages = Array.from(imagensMap.values());
 
-    if (!imagens || imagens.length === 0) {
+    if (orderDetailsImages.length === 0) {
 
         gallery.innerHTML =
             '<p class="text-center">Nenhuma imagem registrada</p>';
@@ -204,19 +207,57 @@ async function loadOrderImages(ordemId) {
 
     }
 
-    imagens.forEach(img => {
+    orderDetailsImages.forEach(img => {
 
         const div = document.createElement('div');
 
-        div.className = 'gallery-item';
+        div.className = 'image-gallery-item';
 
         div.innerHTML = `
             <img src="${img.url_imagem}" alt="Imagem OS">
+            <button type="button" class="image-delete-btn" onclick="removeOrderImageFromDetails('${img.id}')">Excluir</button>
         `;
 
         gallery.appendChild(div);
 
     });
+
+}
+
+
+async function removeOrderImageFromDetails(imageId) {
+
+    const image = orderDetailsImages.find(img => String(img.id) === String(imageId));
+
+    if (!image)
+        return;
+
+    if (!confirm('Remover esta imagem?'))
+        return;
+
+    try {
+
+        if (window.cloudinary && image.url_imagem)
+            await window.cloudinary.deleteImageByUrl(image.url_imagem);
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem no Cloudinary', error);
+
+    }
+
+    try {
+
+        await db.deleteImagem(imageId);
+        orderDetailsImages = orderDetailsImages.filter(img => String(img.id) !== String(imageId));
+        await loadOrderImages(currentOrderId);
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem da ordem', error);
+        alert('Erro ao remover imagem: ' + error.message);
+
+    }
 
 }
 
@@ -1063,6 +1104,7 @@ async function syncOrderImages(ordemId, equipamentoId) {
 
 window.removePartFromOrderBuffer = removePartFromOrderBuffer;
 window.removeImageFromOrderBuffer = removeImageFromOrderBuffer;
+window.removeOrderImageFromDetails = removeOrderImageFromDetails;
 
 
 async function deleteOrdenServico(ordemId) {

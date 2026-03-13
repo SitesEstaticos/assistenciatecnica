@@ -779,6 +779,43 @@ body {
     object-fit: cover;
 }
 
+
+.image-gallery-item,
+.image-preview-item {
+    border: 1px solid var(--border-color);
+    background: #f8fafc;
+}
+
+.image-delete-btn,
+.image-preview-item button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    border: none;
+    border-radius: 999px;
+    background: rgba(220, 38, 38, 0.95);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.55rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.image-delete-btn:hover,
+.image-preview-item button:hover {
+    background: #b91c1c;
+}
+
+#orderGallery .image-gallery-item {
+    min-height: 160px;
+}
+
+#orderGallery .image-gallery-item img {
+    display: block;
+}
+
 .image-upload-area {
     border: 2px dashed var(--border-color);
     border-radius: 8px;

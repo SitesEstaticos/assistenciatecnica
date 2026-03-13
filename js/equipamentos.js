@@ -8,6 +8,7 @@ let allClientes = [];
 let uploadedImages = [];
 let imagensExistentes = [];
 let cloudinaryDeleteTokenSupported = true;
+let equipmentDetailsImages = [];
 
 function getCloudinaryTokenMap() {
 
@@ -635,6 +636,7 @@ async function viewEquipmentDetails(equipamentoId) {
         const cliente = await db.getClienteById(equipamento.cliente_id);
 
         const imagens = await db.getImagensByEquipamento(equipamentoId);
+        equipmentDetailsImages = (imagens || []).filter(img => !!img?.url_imagem);
 
         document.getElementById('detailsTitle').textContent =
             `Detalhes - ${equipamento.marca} ${equipamento.modelo}`;
@@ -666,21 +668,28 @@ async function viewEquipmentDetails(equipamentoId) {
 
         gallery.innerHTML = '';
 
-        if (imagensValidas.length === 0)
+        if (equipmentDetailsImages.length === 0)
             gallery.innerHTML = '<p class="text-center">Nenhuma imagem registrada</p>';
 
-        imagensValidas.forEach(img => {
+        equipmentDetailsImages.forEach(img => {
 
             const item = document.createElement('div');
 
             item.className = 'image-gallery-item';
 
-            item.innerHTML =
-                `<img src="${img.url_imagem}">`;
+            item.innerHTML = `
+                <img src="${img.url_imagem}">
+                <button type="button" class="image-delete-btn" onclick="removeEquipmentImageFromDetails('${img.id}')">Excluir</button>
+            `;
 
-            item.addEventListener('click', () =>
-                window.open(img.url_imagem, '_blank')
-            );
+            item.addEventListener('click', (event) => {
+
+                if (event.target.closest('.image-delete-btn'))
+                    return;
+
+                window.open(img.url_imagem, '_blank');
+
+            });
 
             gallery.appendChild(item);
 
@@ -697,6 +706,43 @@ async function viewEquipmentDetails(equipamentoId) {
 
 }
 
+
+async function removeEquipmentImageFromDetails(imageId) {
+
+    const image = equipmentDetailsImages.find(img => String(img.id) === String(imageId));
+
+    if (!image)
+        return;
+
+    if (!confirm('Remover esta imagem?'))
+        return;
+
+    try {
+
+        if (window.cloudinary && image.url_imagem)
+            await window.cloudinary.deleteImageByUrl(image.url_imagem);
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem no Cloudinary', error);
+
+    }
+
+    try {
+
+        await db.deleteImagem(imageId);
+        equipmentDetailsImages = equipmentDetailsImages.filter(img => String(img.id) !== String(imageId));
+        await viewEquipmentDetails(currentEquipmentId);
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem do equipamento', error);
+        alert('Erro ao remover imagem: ' + error.message);
+
+    }
+
+}
+
 function closeModal() {
 
     document.getElementById('equipmentModal')
@@ -706,6 +752,8 @@ function closeModal() {
         .classList.add('hidden');
 
 }
+
+window.removeEquipmentImageFromDetails = removeEquipmentImageFromDetails;
 
 document.addEventListener('DOMContentLoaded', () => {
 

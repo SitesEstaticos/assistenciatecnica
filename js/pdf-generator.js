@@ -49,9 +49,11 @@ class PDFGenerator {
 
     async generateOrderPDF(ordem, cliente, equipamento, imagens = [], pecas = [], empresa = {}) {
 
+        let element = null;
+
         try {
 
-            const element = document.createElement("div");
+            element = document.createElement("div");
 
             element.style.position = "fixed";
             element.style.top = "0";

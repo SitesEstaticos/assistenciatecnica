@@ -365,11 +365,25 @@ class DatabaseManager {
 
     async createPeca(peca) {
 
-        const { data, error } = await this.supabase
+        let payload = { ...peca };
+
+        const tryInsert = async (dataToInsert) => this.supabase
             .from('pecas')
-            .insert(peca)
+            .insert(dataToInsert)
             .select()
             .single();
+
+        let { data, error } = await tryInsert(payload);
+
+        if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade_estoque'")) {
+            payload.quantidade = payload.quantidade_estoque;
+            delete payload.quantidade_estoque;
+            ({ data, error } = await tryInsert(payload));
+        } else if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade'")) {
+            payload.quantidade_estoque = payload.quantidade;
+            delete payload.quantidade;
+            ({ data, error } = await tryInsert(payload));
+        }
 
         if (error) throw error;
 
@@ -378,14 +392,30 @@ class DatabaseManager {
 
     async updatePeca(id, updates = {}) {
 
-        updates.atualizado_em = new Date().toISOString();
+        const payloadBase = {
+            ...updates,
+            atualizado_em: new Date().toISOString()
+        };
 
-        const { data, error } = await this.supabase
+        const tryUpdate = async (dataToUpdate) => this.supabase
             .from('pecas')
-            .update(updates)
+            .update(dataToUpdate)
             .eq('id', id)
             .select()
             .single();
+
+        let payload = { ...payloadBase };
+        let { data, error } = await tryUpdate(payload);
+
+        if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade_estoque'")) {
+            payload.quantidade = payload.quantidade_estoque;
+            delete payload.quantidade_estoque;
+            ({ data, error } = await tryUpdate(payload));
+        } else if (error?.code === 'PGRST204' && error?.message?.includes("'quantidade'")) {
+            payload.quantidade_estoque = payload.quantidade;
+            delete payload.quantidade;
+            ({ data, error } = await tryUpdate(payload));
+        }
 
         if (error) throw error;
 

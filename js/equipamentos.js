@@ -664,6 +664,8 @@ async function viewEquipmentDetails(equipamentoId) {
 
         const gallery = document.getElementById('equipmentGallery');
 
+        const imagensValidas = (imagens || []).filter(img => !!img?.url_imagem);
+
         gallery.innerHTML = '';
 
         if (equipmentDetailsImages.length === 0)

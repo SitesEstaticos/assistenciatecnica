@@ -785,7 +785,10 @@ async function loadOrderAssetsForEditing(ordemId) {
 
     const [pecas, imagensDaOs] = await Promise.all([
         db.getPecasByOrdem(ordemId),
-        db.getImagensByOrdem(ordemId)
+        db.getImagensByOrdem(ordemId),
+        ordem?.equipamento_id
+            ? db.getImagensByEquipamento(ordem.equipamento_id)
+            : Promise.resolve([])
     ]);
 
     orderPartsBuffer = (pecas || []).map(p => ({

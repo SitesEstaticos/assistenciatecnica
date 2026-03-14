@@ -16,6 +16,7 @@ let orderPartIdsToDelete = [];
 let orderImageIdsToDelete = [];
 let cloudinaryDeleteTokenSupported = true;
 let orderDetailsImages = [];
+let isSavingOrder = false;
 
 async function initOrdensServicoPage() {
 
@@ -179,14 +180,11 @@ async function loadOrderImages(ordemId) {
 
     }
 
-    const [imagensDaOs, imagensDoEquipamento] = await Promise.all([
-        db.getImagensByOrdem(ordemId),
-        db.getImagensByEquipamento(ordem.equipamento_id)
-    ]);
+    const imagensDaOs = await db.getImagensByOrdem(ordemId);
 
     const imagensMap = new Map();
 
-    [...(imagensDaOs || []), ...(imagensDoEquipamento || [])]
+    (imagensDaOs || [])
         .forEach(img => {
 
             if (!img?.id || !img?.url_imagem)
@@ -237,7 +235,12 @@ async function removeOrderImageFromDetails(imageId) {
 
     try {
 
-        if (window.cloudinary && image.url_imagem)
+        const hasCloudinaryAuth = !!(
+            window.CLOUDINARY_CONFIG?.API_KEY &&
+            window.CLOUDINARY_CONFIG?.API_SECRET
+        );
+
+        if (window.cloudinary && image.url_imagem && hasCloudinaryAuth)
             await window.cloudinary.deleteImageByUrl(image.url_imagem);
 
     } catch (error) {
@@ -464,25 +467,33 @@ function setupEventListeners() {
 
     const newOrderBtn = document.getElementById('newOrderBtn');
 
-    if (newOrderBtn)
+    if (newOrderBtn) {
+        newOrderBtn.removeEventListener('click', openNewOrderModal);
         newOrderBtn.addEventListener('click', openNewOrderModal);
+    }
 
     const searchInput = document.getElementById('searchOrders');
     const filterStatus = document.getElementById('filterStatus');
 
-    if (searchInput)
+    if (searchInput) {
+        searchInput.removeEventListener('input', filterOrders);
         searchInput.addEventListener('input', filterOrders);
+    }
 
-    if (filterStatus)
+    if (filterStatus) {
+        filterStatus.removeEventListener('change', filterOrders);
         filterStatus.addEventListener('change', filterOrders);
+    }
 
     ['closeOrderModal', 'cancelOrderBtn', 'closeDetailsModal', 'closeDetailsBtn']
         .forEach(id => {
 
             const elem = document.getElementById(id);
 
-            if (elem)
+            if (elem) {
+                elem.removeEventListener('click', closeModal);
                 elem.addEventListener('click', closeModal);
+            }
 
         });
 
@@ -493,8 +504,10 @@ function setupEventListeners() {
     const uploadOrderImagesBtn = document.getElementById('uploadOrderImagesBtn');
     const orderImagesInput = document.getElementById('orderImagesInput');
 
-    if (orderForm)
+    if (orderForm) {
+        orderForm.removeEventListener('submit', saveOrdenServico);
         orderForm.addEventListener('submit', saveOrdenServico);
+    }
 
 
     if (addPartBtn) {
@@ -515,15 +528,18 @@ function setupEventListeners() {
         orderImagesInput.addEventListener('change', handleOrderImageUpload);
     }
 
-    if (editOrderBtn)
-        editOrderBtn.addEventListener('click', () => {
+    if (editOrderBtn) {
+        const handleEditOrder = () => {
 
             document.getElementById('orderDetailsModal')
                 .classList.add('hidden');
 
             openEditOrderModal(currentOrderId);
 
-        });
+        };
+
+        editOrderBtn.onclick = handleEditOrder;
+    }
 
 }
 
@@ -669,6 +685,11 @@ async function saveOrdenServico(e) {
 
     e.preventDefault();
 
+    if (isSavingOrder)
+        return;
+
+    isSavingOrder = true;
+
     const orderId =
         document.getElementById('orderId').value;
 
@@ -736,6 +757,10 @@ async function saveOrdenServico(e) {
 
         alert('Erro ao salvar ordem: ' + error.message);
 
+    } finally {
+
+        isSavingOrder = false;
+
     }
 
 }
@@ -758,7 +783,7 @@ async function loadOrderAssetsForEditing(ordemId) {
 
     const ordem = await db.getOrdemServicoById(ordemId);
 
-    const [pecas, imagensDaOs, imagensDoEquipamento] = await Promise.all([
+    const [pecas, imagensDaOs] = await Promise.all([
         db.getPecasByOrdem(ordemId),
         db.getImagensByOrdem(ordemId),
         ordem?.equipamento_id
@@ -777,7 +802,7 @@ async function loadOrderAssetsForEditing(ordemId) {
 
     const imagensMap = new Map();
 
-    [...(imagensDaOs || []), ...(imagensDoEquipamento || [])]
+    (imagensDaOs || [])
         .forEach(img => {
 
             if (!img?.id || !img?.url_imagem)
@@ -1063,10 +1088,19 @@ async function syncOrderParts(ordemId) {
     for (const pecaId of orderPartIdsToDelete)
         await db.removePecaFromOrdem(pecaId);
 
+    const insertedParts = new Set();
+
     for (const part of orderPartsBuffer) {
 
         if (part.existing)
             continue;
+
+        const signature = `${part.peca_id}-${part.quantidade}-${part.valor_unitario}`;
+
+        if (insertedParts.has(signature))
+            continue;
+
+        insertedParts.add(signature);
 
         await db.addPecaToOrdem({
             ordem_id: ordemId,

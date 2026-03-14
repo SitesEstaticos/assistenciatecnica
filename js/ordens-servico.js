@@ -14,6 +14,9 @@ let orderPartsBuffer = [];
 let orderImagesBuffer = [];
 let orderPartIdsToDelete = [];
 let orderImageIdsToDelete = [];
+let cloudinaryDeleteTokenSupported = true;
+let orderDetailsImages = [];
+let isSavingOrder = false;
 
 async function initOrdensServicoPage() {
 
@@ -177,24 +180,23 @@ async function loadOrderImages(ordemId) {
 
     }
 
-    const [imagensDaOs, imagensDoEquipamento] = await Promise.all([
-        db.getImagensByOrdem(ordemId),
-        db.getImagensByEquipamento(ordem.equipamento_id)
-    ]);
+    const imagensDaOs = await db.getImagensByOrdem(ordemId);
 
     const imagensMap = new Map();
 
-    [...imagensDaOs, ...imagensDoEquipamento]
+    (imagensDaOs || [])
         .forEach(img => {
 
-            if (img?.id)
-                imagensMap.set(String(img.id), img);
+            if (!img?.id || !img?.url_imagem)
+                return;
+
+            imagensMap.set(String(img.id), img);
 
         });
 
-    const imagens = Array.from(imagensMap.values());
+    orderDetailsImages = Array.from(imagensMap.values());
 
-    if (!imagens || imagens.length === 0) {
+    if (orderDetailsImages.length === 0) {
 
         gallery.innerHTML =
             '<p class="text-center">Nenhuma imagem registrada</p>';
@@ -203,19 +205,62 @@ async function loadOrderImages(ordemId) {
 
     }
 
-    imagens.forEach(img => {
+    orderDetailsImages.forEach(img => {
 
         const div = document.createElement('div');
 
-        div.className = 'gallery-item';
+        div.className = 'image-gallery-item';
 
         div.innerHTML = `
             <img src="${img.url_imagem}" alt="Imagem OS">
+            <button type="button" class="image-delete-btn" onclick="removeOrderImageFromDetails('${img.id}')">Excluir</button>
         `;
 
         gallery.appendChild(div);
 
     });
+
+}
+
+
+async function removeOrderImageFromDetails(imageId) {
+
+    const image = orderDetailsImages.find(img => String(img.id) === String(imageId));
+
+    if (!image)
+        return;
+
+    if (!confirm('Remover esta imagem?'))
+        return;
+
+    try {
+
+        const hasCloudinaryAuth = !!(
+            window.CLOUDINARY_CONFIG?.API_KEY &&
+            window.CLOUDINARY_CONFIG?.API_SECRET
+        );
+
+        if (window.cloudinary && image.url_imagem && hasCloudinaryAuth)
+            await window.cloudinary.deleteImageByUrl(image.url_imagem);
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem no Cloudinary', error);
+
+    }
+
+    try {
+
+        await db.deleteImagem(imageId);
+        orderDetailsImages = orderDetailsImages.filter(img => String(img.id) !== String(imageId));
+        await loadOrderImages(currentOrderId);
+
+    } catch (error) {
+
+        Logger.error('Erro ao remover imagem da ordem', error);
+        alert('Erro ao remover imagem: ' + error.message);
+
+    }
 
 }
 
@@ -422,25 +467,33 @@ function setupEventListeners() {
 
     const newOrderBtn = document.getElementById('newOrderBtn');
 
-    if (newOrderBtn)
+    if (newOrderBtn) {
+        newOrderBtn.removeEventListener('click', openNewOrderModal);
         newOrderBtn.addEventListener('click', openNewOrderModal);
+    }
 
     const searchInput = document.getElementById('searchOrders');
     const filterStatus = document.getElementById('filterStatus');
 
-    if (searchInput)
+    if (searchInput) {
+        searchInput.removeEventListener('input', filterOrders);
         searchInput.addEventListener('input', filterOrders);
+    }
 
-    if (filterStatus)
+    if (filterStatus) {
+        filterStatus.removeEventListener('change', filterOrders);
         filterStatus.addEventListener('change', filterOrders);
+    }
 
     ['closeOrderModal', 'cancelOrderBtn', 'closeDetailsModal', 'closeDetailsBtn']
         .forEach(id => {
 
             const elem = document.getElementById(id);
 
-            if (elem)
+            if (elem) {
+                elem.removeEventListener('click', closeModal);
                 elem.addEventListener('click', closeModal);
+            }
 
         });
 
@@ -451,8 +504,10 @@ function setupEventListeners() {
     const uploadOrderImagesBtn = document.getElementById('uploadOrderImagesBtn');
     const orderImagesInput = document.getElementById('orderImagesInput');
 
-    if (orderForm)
+    if (orderForm) {
+        orderForm.removeEventListener('submit', saveOrdenServico);
         orderForm.addEventListener('submit', saveOrdenServico);
+    }
 
 
     if (addPartBtn) {
@@ -473,15 +528,18 @@ function setupEventListeners() {
         orderImagesInput.addEventListener('change', handleOrderImageUpload);
     }
 
-    if (editOrderBtn)
-        editOrderBtn.addEventListener('click', () => {
+    if (editOrderBtn) {
+        const handleEditOrder = () => {
 
             document.getElementById('orderDetailsModal')
                 .classList.add('hidden');
 
             openEditOrderModal(currentOrderId);
 
-        });
+        };
+
+        editOrderBtn.onclick = handleEditOrder;
+    }
 
 }
 
@@ -627,6 +685,11 @@ async function saveOrdenServico(e) {
 
     e.preventDefault();
 
+    if (isSavingOrder)
+        return;
+
+    isSavingOrder = true;
+
     const orderId =
         document.getElementById('orderId').value;
 
@@ -694,6 +757,10 @@ async function saveOrdenServico(e) {
 
         alert('Erro ao salvar ordem: ' + error.message);
 
+    } finally {
+
+        isSavingOrder = false;
+
     }
 
 }
@@ -714,7 +781,9 @@ async function loadOrderAssetsForEditing(ordemId) {
 
     resetOrderAssetsEditor();
 
-    const [pecas, imagens] = await Promise.all([
+    const ordem = await db.getOrdemServicoById(ordemId);
+
+    const [pecas, imagensDaOs] = await Promise.all([
         db.getPecasByOrdem(ordemId),
         db.getImagensByOrdem(ordemId)
     ]);
@@ -728,11 +797,23 @@ async function loadOrderAssetsForEditing(ordemId) {
         existing: true
     }));
 
-    orderImagesBuffer = (imagens || []).map(img => ({
-        id: img.id,
-        url: img.url_imagem,
-        existing: true
-    }));
+    const imagensMap = new Map();
+
+    (imagensDaOs || [])
+        .forEach(img => {
+
+            if (!img?.id || !img?.url_imagem)
+                return;
+
+            imagensMap.set(String(img.id), {
+                id: img.id,
+                url: img.url_imagem,
+                existing: true
+            });
+
+        });
+
+    orderImagesBuffer = Array.from(imagensMap.values());
 
     renderOrderPartsEditor();
     renderOrderImagesEditor();
@@ -845,9 +926,40 @@ function triggerOrderImageSelector() {
 
 }
 
+
+async function uploadOrderImageToCloudinary(file, includeDeleteToken = true) {
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
+
+    if (includeDeleteToken)
+        formData.append('return_delete_token', 'true');
+
+    const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+    );
+
+    let data = {};
+
+    try {
+        data = await response.json();
+    } catch {
+        data = {};
+    }
+
+    if (!response.ok || !data.secure_url)
+        throw new Error(data.error?.message || 'Falha no upload da imagem da ordem');
+
+    return data;
+
+}
+
 async function handleOrderImageUpload(event) {
 
     const files = Array.from(event.target.files || []);
+    const failedFiles = [];
 
     for (const file of files) {
 
@@ -856,29 +968,46 @@ async function handleOrderImageUpload(event) {
         if (orderImagesBuffer.some(img => img.tempId === uniqueName))
             continue;
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', window.CLOUDINARY_CONFIG.UPLOAD_PRESET);
-        formData.append('return_delete_token', 'true');
+        try {
 
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CONFIG.CLOUD_NAME}/image/upload`,
-            { method: 'POST', body: formData }
-        );
+            let data;
 
-        const data = await response.json();
+            try {
+                data = await uploadOrderImageToCloudinary(file, cloudinaryDeleteTokenSupported);
+            } catch (error) {
 
-        orderImagesBuffer.push({
-            tempId: uniqueName,
-            url: data.secure_url,
-            deleteToken: data.delete_token || null,
-            publicId: data.public_id || null,
-            existing: false
-        });
+                if (cloudinaryDeleteTokenSupported) {
+                    Logger.log('Upload com delete_token falhou na OS, tentando fallback simples...', error?.message);
+                    cloudinaryDeleteTokenSupported = false;
+                    data = await uploadOrderImageToCloudinary(file, false);
+                } else {
+                    throw error;
+                }
+
+            }
+
+            orderImagesBuffer.push({
+                tempId: uniqueName,
+                url: data.secure_url,
+                deleteToken: data.delete_token || null,
+                publicId: data.public_id || null,
+                existing: false
+            });
+
+        } catch (error) {
+
+            Logger.error('Falha no upload da imagem da OS', { file: file.name, error });
+            failedFiles.push(file.name);
+
+        }
 
     }
 
     renderOrderImagesEditor();
+
+    if (failedFiles.length > 0)
+        alert('Não foi possível enviar as seguintes imagens: ' + failedFiles.join(', '));
+
     event.target.value = '';
 
 }
@@ -932,6 +1061,9 @@ function renderOrderImagesEditor() {
 
     orderImagesBuffer.forEach(img => {
 
+        if (!img.url)
+            return;
+
         const key = img.id || img.tempId;
 
         const div = document.createElement('div');
@@ -953,10 +1085,19 @@ async function syncOrderParts(ordemId) {
     for (const pecaId of orderPartIdsToDelete)
         await db.removePecaFromOrdem(pecaId);
 
+    const insertedParts = new Set();
+
     for (const part of orderPartsBuffer) {
 
         if (part.existing)
             continue;
+
+        const signature = `${part.peca_id}-${part.quantidade}-${part.valor_unitario}`;
+
+        if (insertedParts.has(signature))
+            continue;
+
+        insertedParts.add(signature);
 
         await db.addPecaToOrdem({
             ordem_id: ordemId,
@@ -976,7 +1117,7 @@ async function syncOrderImages(ordemId, equipamentoId) {
 
     for (const img of orderImagesBuffer) {
 
-        if (img.existing)
+        if (img.existing || !img.url)
             continue;
 
         await db.createImagem({
@@ -994,6 +1135,7 @@ async function syncOrderImages(ordemId, equipamentoId) {
 
 window.removePartFromOrderBuffer = removePartFromOrderBuffer;
 window.removeImageFromOrderBuffer = removeImageFromOrderBuffer;
+window.removeOrderImageFromDetails = removeOrderImageFromDetails;
 
 
 async function deleteOrdenServico(ordemId) {

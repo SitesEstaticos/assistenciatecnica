@@ -459,6 +459,7 @@ class DatabaseManager {
             if (
                 o.status === 'em_analise' ||
                 o.status === 'aguardando_peca' ||
+                o.status === 'em_manutencao' ||
                 o.status === 'manutencao'
             ) osManutencao++;
 
@@ -499,15 +500,19 @@ class DatabaseManager {
             recebido: 0,
             em_analise: 0,
             aguardando_peca: 0,
-            manutencao: 0,
+            em_manutencao: 0,
             finalizado: 0,
             entregue: 0
         };
 
         (data || []).forEach(o => {
 
-            if (counts[o.status] !== undefined) {
-                counts[o.status]++;
+            const status = o.status === 'manutencao'
+                ? 'em_manutencao'
+                : o.status;
+
+            if (counts[status] !== undefined) {
+                counts[status]++;
             }
 
         });

@@ -26,6 +26,7 @@ async function loadStatistics() {
         const osAbertas = ordens.filter(o => o.status === 'recebido').length;
 
         const osManutencao = ordens.filter(o =>
+            o.status === 'em_manutencao' ||
             o.status === 'manutencao' ||
             o.status === 'em_analise' ||
             o.status === 'aguardando_peca'
@@ -128,7 +129,7 @@ async function initCharts() {
                             statusCounts.recebido || 0,
                             statusCounts.em_analise || 0,
                             statusCounts.aguardando_peca || 0,
-                            statusCounts.manutencao || 0,
+                            statusCounts.em_manutencao || 0,
                             statusCounts.finalizado || 0,
                             statusCounts.entregue || 0
                         ],

@@ -53,16 +53,29 @@ class PDFGenerator {
     }
 
     addLabelValue(doc, y, label, value) {
-        y = this.ensurePageSpace(doc, y, this.lineHeight + 1);
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.text(`${label}:`, this.margin, y);
+
+        const labelText = `${label}:`;
+        const labelWidth = doc.getTextWidth(labelText);
+        const valueX = this.margin + Math.max(32, Math.min(72, labelWidth + 4));
+        const maxValueWidth = Math.max(20, 200 - this.margin - valueX);
 
         doc.setFont('helvetica', 'normal');
-        doc.text(String(value ?? 'N/A'), this.margin + 32, y);
+        const valueText = String(value ?? 'N/A');
+        const valueLines = doc.splitTextToSize(valueText, maxValueWidth);
 
-        return y + this.lineHeight;
+        const blockHeight = Math.max(this.lineHeight, (valueLines.length * 4.6) + 1);
+        y = this.ensurePageSpace(doc, y, blockHeight + 1);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(labelText, this.margin, y);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(valueLines, valueX, y);
+
+        return y + blockHeight;
     }
 
     addParagraph(doc, y, text) {
@@ -261,7 +274,10 @@ class PDFGenerator {
         y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'INFORMAÇÕES DA ORDEM');
         y = this.addLabelValue(doc, y, 'Data de recebimento', this.safeDate(ordem?.data_recebimento));
-        y = this.addLabelValue(doc, y, 'Status', ordem?.status || 'N/A');
+        const ordemStatusLabel = typeof getStatusLabel === 'function'
+            ? getStatusLabel(ordem?.status)
+            : (ordem?.status || 'N/A');
+        y = this.addLabelValue(doc, y, 'Status', ordemStatusLabel);
         y = this.addLabelValue(doc, y, 'Técnico', ordem?.tecnico_responsavel || 'N/A');
 
         y += this.sectionGap;

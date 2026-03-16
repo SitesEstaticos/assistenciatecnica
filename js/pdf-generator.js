@@ -260,7 +260,7 @@ class PDFGenerator {
 
         y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'INFORMAÇÕES DA ORDEM');
-        y = this.addLabelValue(doc, y, 'Data de recebimento', this.safeDate(ordem?.data_recebimento));
+        y = this.addLabelValue(doc, y, 'Data de recebimento ', this.safeDate(ordem?.data_recebimento));
         y = this.addLabelValue(doc, y, 'Status', ordem?.status || 'N/A');
         y = this.addLabelValue(doc, y, 'Técnico', ordem?.tecnico_responsavel || 'N/A');
 

@@ -287,13 +287,21 @@ async function loadOrderTimeline(ordemId) {
 
         div.className = 'timeline-item';
 
+        const eventDate = h.criado_em || h.data_evento;
+
+        const statusRaw = h.novo_status || h.status;
+        const statusLabel = statusRaw ? getStatusLabel(statusRaw) : 'N/A';
+
+        const timelineDescription = h.descricao
+            || `Status alterado para <strong>${statusLabel}</strong>`;
+
         div.innerHTML = `
             <div class="timeline-date">
-                ${formatDate(h.data_evento)}
+                ${formatDate(eventDate)}
             </div>
 
             <div class="timeline-content">
-                Status alterado para <strong>${getStatusLabel(h.status)}</strong>
+                ${timelineDescription}
             </div>
         `;
 

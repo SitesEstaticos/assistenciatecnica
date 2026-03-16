@@ -137,7 +137,7 @@ async function initCharts() {
                             '#dbeafe',
                             '#fef3c7',
                             '#fecaca',
-                            '#4a8c36',
+                            '#cd9ab0',
                             '#dcfce7',
                             '#d1fae5'
                         ],

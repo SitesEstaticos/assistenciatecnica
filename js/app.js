@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     handleLoginForm();
     setupLogoutButton();
+    setupMobileMenu();
 
     checkProtectedPages();
 
@@ -85,6 +86,53 @@ function setupLogoutButton() {
 
         }
 
+    });
+
+}
+
+
+function setupMobileMenu() {
+
+    const toggleButton = document.getElementById('mobileMenuToggle');
+    const sidebar = document.querySelector('.sidebar');
+
+    if (!toggleButton || !sidebar) return;
+
+    const closeMenu = () => {
+        document.body.classList.remove('menu-open');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        toggleButton.textContent = '☰';
+    };
+
+    const openMenu = () => {
+        document.body.classList.add('menu-open');
+        toggleButton.setAttribute('aria-expanded', 'true');
+        toggleButton.textContent = '✕';
+    };
+
+    toggleButton.addEventListener('click', () => {
+        const isOpen = document.body.classList.contains('menu-open');
+        if (isOpen) {
+            closeMenu();
+            return;
+        }
+        openMenu();
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!document.body.classList.contains('menu-open')) return;
+        if (sidebar.contains(event.target) || toggleButton.contains(event.target)) return;
+        closeMenu();
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) {
+            closeMenu();
+        }
+    });
+
+    sidebar.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', closeMenu);
     });
 
 }

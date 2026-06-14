@@ -9,39 +9,20 @@
 }
 
 :root {
-    --primary-color: #1A535C;
-    /* Azul Petróleo */
+    --primary-color:#045573;
     --primary-light: #4ECDC4;
-    /* Ciano */
-    --primary-dark: #0B3035;
-    /* Azul Petróleo Escuro */
-
-    --secondary-color: #CBD5E1;
-    /* Cinza Claro */
-
-    --success-color: #4ECDC4;
-    /* Ciano */
-    --danger-color: #dc2626;
-    /* Vermelho para alertas */
-    --warning-color: #f59e0b;
-    /* Amarelo para avisos */
-    --info-color: #38bdf8;
-    /* Azul informativo */
-
-    --light-bg: #0B1220;
-    /* Grafite Escuro */
-    --border-color: #334155;
-    /* Borda compatível com fundo escuro */
-
-    --text-primary: #FFFFFF;
-    /* Branco */
-    --text-secondary: #CBD5E1;
-    /* Cinza Claro */
-
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.45);
-
+    --primary-dark: #02818b;
+    --secondary-color: #64748b;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --info-color: #0ea5e9;
+    --light-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
 }
 
@@ -91,9 +72,9 @@ body {
 }
 
 .logo {
-    width: 80px;
-    height: 80px;
-    background: white;
+    width: 130px;
+    height: 130px;
+    background: rgb(0, 0, 0);
     color: white;
     border-radius: 12px;
     display: flex;
@@ -247,12 +228,12 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0rem;
 }
 
 .logo-small {
-    width: 50px;
-    height: 50px;
+    width: 120px;
+    height: 120px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     display: flex;
@@ -512,15 +493,17 @@ body {
 .charts-section {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 2rem;
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
 .chart-container {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
+    background: rgb(255, 255, 255);
+    border-radius: 10px;
+    padding: 0.5rem;
     box-shadow: var(--shadow-sm);
+    max-width: 600px;
+
 }
 
 .chart-container h2 {
@@ -564,7 +547,7 @@ body {
 .data-table td {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
-    color: var(--text-primary);
+    color: #1f2937;
 }
 
 .data-table tbody tr:hover {

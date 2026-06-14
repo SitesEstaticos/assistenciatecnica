@@ -8,6 +8,15 @@ class PDFGenerator {
         this.margin = 10;
         this.lineHeight = 6.8;
         this.sectionGap = 4.5;
+        this.colors = {
+            primary: [26, 83, 92],
+            accent: [14, 116, 144],
+            dark: [15, 23, 42],
+            muted: [71, 85, 105],
+            soft: [248, 250, 252],
+            border: [226, 232, 240],
+            success: [16, 185, 129]
+        };
     }
 
     safeDate(date) {
@@ -39,43 +48,42 @@ class PDFGenerator {
     addSectionTitle(doc, y, title) {
         y = this.ensurePageSpace(doc, y, 10);
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.setTextColor(26, 83, 92);
-        doc.text(String(title || ''), this.margin, y);
+        doc.setFillColor(...this.colors.soft);
+        doc.roundedRect(this.margin, y - 2.5, 190, 7.5, 1.2, 1.2, 'F');
 
-        doc.setDrawColor(226, 232, 240);
-        doc.line(this.margin, y + 1.5, 200, y + 1.5);
+        doc.setDrawColor(...this.colors.border);
+        doc.roundedRect(this.margin, y - 2.5, 190, 7.5, 1.2, 1.2, 'S');
+
+        doc.setFillColor(...this.colors.primary);
+        doc.roundedRect(this.margin, y - 2.2, 1.2, 6.8, 0.4, 0.4, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...this.colors.primary);
+        doc.text(String(title || ''), this.margin + 3.2, y + 1.2);
 
         doc.setTextColor(40, 40, 40);
 
-        return y + 9;
+        return y + 8;
     }
 
     addLabelValue(doc, y, label, value) {
+        const labelWidth = 52;
+        const valueWidth = 140;
+        const textLines = doc.splitTextToSize(String(value ?? 'N/A'), valueWidth);
+        const lineHeight = Math.max(this.lineHeight, textLines.length * 4.2);
+
+        y = this.ensurePageSpace(doc, y, lineHeight + 1);
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-
-        const labelText = `${label}:`;
-        const labelWidth = doc.getTextWidth(labelText);
-        const valueX = this.margin + Math.max(32, Math.min(72, labelWidth + 4));
-        const maxValueWidth = Math.max(20, 200 - this.margin - valueX);
+        doc.setFontSize(9);
+        doc.text(`${label}:`, this.margin, y);
 
         doc.setFont('helvetica', 'normal');
-        const valueText = String(value ?? 'N/A');
-        const valueLines = doc.splitTextToSize(valueText, maxValueWidth);
+        doc.setFontSize(9);
+        doc.text(textLines, this.margin + labelWidth + 2, y);
 
-        const blockHeight = Math.max(this.lineHeight, (valueLines.length * 4.6) + 1);
-        y = this.ensurePageSpace(doc, y, blockHeight + 1);
-
-        doc.setFont('helvetica', 'bold');
-        doc.text(labelText, this.margin, y);
-
-        doc.setFont('helvetica', 'normal');
-        doc.text(valueLines, valueX, y);
-
-        return y + blockHeight;
+        return y + lineHeight;
     }
 
     addParagraph(doc, y, text) {
@@ -100,8 +108,13 @@ class PDFGenerator {
 
         y = this.ensurePageSpace(doc, y, 10);
 
-        doc.setFillColor(26, 83, 92);
-        doc.rect(this.margin, y - 4.5, 190, 7, 'F');
+        doc.setFillColor(...this.colors.soft);
+        doc.roundedRect(this.margin, y - 5, 190, 7, 1, 1, 'F');
+        doc.setDrawColor(...this.colors.border);
+        doc.roundedRect(this.margin, y - 5, 190, 7, 1, 1, 'S');
+
+        doc.setFillColor(...this.colors.primary);
+        doc.roundedRect(this.margin, y - 4.5, 190, 7, 1, 1, 'F');
 
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
@@ -129,11 +142,12 @@ class PDFGenerator {
 
             const rowHeight = Math.max(6, nomeLines.length * 4.2 + 1.5);
 
-            doc.setDrawColor(220, 220, 220);
-            doc.rect(colX[0], rowY - 4.5, colW[0], rowHeight);
-            doc.rect(colX[1], rowY - 4.5, colW[1], rowHeight);
-            doc.rect(colX[2], rowY - 4.5, colW[2], rowHeight);
-            doc.rect(colX[3], rowY - 4.5, colW[3], rowHeight);
+            doc.setDrawColor(226, 232, 240);
+            doc.setFillColor(250, 251, 253);
+            doc.roundedRect(colX[0], rowY - 4.5, colW[0], rowHeight, 0.6, 0.6, 'FD');
+            doc.roundedRect(colX[1], rowY - 4.5, colW[1], rowHeight, 0.6, 0.6, 'FD');
+            doc.roundedRect(colX[2], rowY - 4.5, colW[2], rowHeight, 0.6, 0.6, 'FD');
+            doc.roundedRect(colX[3], rowY - 4.5, colW[3], rowHeight, 0.6, 0.6, 'FD');
 
             doc.text(nomeLines, colX[0] + 1, rowY - 0.3);
             doc.text(String(qtd), colX[1] + 1, rowY - 0.3);
@@ -241,22 +255,64 @@ class PDFGenerator {
         const totalServico = Number(ordem?.valor_servico || 0);
         const totalFinal = totalServico + totalPecas;
 
-        let y = this.margin;
+        const logoCandidates = [
+            new URL('../images/logo com fundo M³.png', window.location.href).href,
+            new URL('../images/logo M³.png', window.location.href).href
+        ];
 
+        let logoDataUrl = null;
+
+        for (const logoUrl of logoCandidates) {
+            logoDataUrl = await this.loadImageAsDataUrl(logoUrl);
+            if (logoDataUrl)
+                break;
+        }
+
+        let y = 8;
+
+        doc.setFillColor(247, 250, 252);
+        doc.roundedRect(8, y, 194, 30, 2.5, 2.5, 'F');
+        doc.setDrawColor(...this.colors.border);
+        doc.roundedRect(8, y, 194, 30, 2.5, 2.5, 'S');
+
+        if (logoDataUrl) {
+            try {
+                doc.addImage(logoDataUrl, 'PNG', 12, y + 3, 24, 24);
+            } catch {
+                doc.setFontSize(8);
+                doc.setTextColor(...this.colors.muted);
+                doc.text('Logo', 12, y + 14);
+            }
+        }
+
+        doc.setTextColor(...this.colors.dark);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(16);
-        doc.setTextColor(26, 83, 92);
-        doc.text(empresa?.nome || 'ASSISTÊNCIA TÉCNICA', this.margin, y);
+        doc.text(empresa?.nome || 'M³ Technology', 40, y + 7);
 
-        doc.setFontSize(12);
-        doc.text(`ORDEM DE SERVIÇO Nº ${ordem?.numero_os || 'N/A'}`, 200, y, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...this.colors.muted);
+        doc.text('Assistência técnica especializada em notebooks e eletrônicos.', 40, y + 14);
 
-        y += 4;
-        doc.setDrawColor(26, 83, 92);
-        doc.setLineWidth(0.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...this.colors.primary);
+        doc.text(`OS Nº ${ordem?.numero_os || 'N/A'}`, 200, y + 8, { align: 'right' });
+
+        doc.setFillColor(...this.colors.primary);
+        doc.roundedRect(170, y + 16, 30, 8, 1.3, 1.3, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(String(ordem?.status || 'Em análise').toUpperCase(), 185, y + 21, { align: 'center' });
+
+        y += 36;
+        doc.setDrawColor(...this.colors.primary);
+        doc.setLineWidth(0.4);
         doc.line(this.margin, y, 200, y);
 
-        y += 8;
+        y += 5;
         y = this.addSectionTitle(doc, y, 'CLIENTE');
         y = this.addLabelValue(doc, y, 'Nome', cliente?.nome || 'N/A');
         y = this.addLabelValue(doc, y, 'Telefone', cliente?.telefone || 'N/A');
@@ -274,10 +330,7 @@ class PDFGenerator {
         y += this.sectionGap;
         y = this.addSectionTitle(doc, y, 'INFORMAÇÕES DA ORDEM');
         y = this.addLabelValue(doc, y, 'Data de recebimento', this.safeDate(ordem?.data_recebimento));
-        const ordemStatusLabel = typeof getStatusLabel === 'function'
-            ? getStatusLabel(ordem?.status)
-            : (ordem?.status || 'N/A');
-        y = this.addLabelValue(doc, y, 'Status', ordemStatusLabel);
+        y = this.addLabelValue(doc, y, 'Status', ordem?.status || 'N/A');
         y = this.addLabelValue(doc, y, 'Técnico', ordem?.tecnico_responsavel || 'N/A');
 
         y += this.sectionGap;

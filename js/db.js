@@ -338,91 +338,163 @@ class DatabaseManager {
     // PEÇAS
     // ============================================
 
+    normalizePecaRecord(peca) {
+
+        const estoque = Array.isArray(peca?.estoque)
+            ? (peca.estoque[0] || null)
+            : peca?.estoque || null;
+
+        return {
+            ...peca,
+            quantidade: Number(estoque?.quantidade ?? peca?.quantidade ?? 0),
+            quantidade_minima: Number(estoque?.quantidade_minima ?? peca?.quantidade_minima ?? 5),
+            estoque
+        };
+
+    }
+
     async getPecas() {
 
         const { data, error } = await this.supabase
             .from('pecas')
-            .select('*')
+            .select('*, estoque(*)')
             .order('nome', { ascending: true });
 
         if (error) throw error;
 
-        return data || [];
+        return (data || []).map(item => this.normalizePecaRecord(item));
     }
 
     async getPecaById(id) {
 
         const { data, error } = await this.supabase
             .from('pecas')
-            .select('*')
+            .select('*, estoque(*)')
             .eq('id', id)
             .single();
 
         if (error) throw error;
 
-        return data;
+        return this.normalizePecaRecord(data);
     }
 
     async createPeca(peca) {
 
-        let payload = { ...peca };
+        const quantidade = Number(peca.quantidade ?? 0);
+        const quantidadeMinima = Number(peca.quantidade_minima ?? 5);
 
-        const tryInsert = async (dataToInsert) => this.supabase
+        const basePayload = { ...peca };
+        delete basePayload.quantidade;
+        delete basePayload.quantidade_minima;
+
+        const { data: createdPeca, error } = await this.supabase
             .from('pecas')
-            .insert(dataToInsert)
+            .insert(basePayload)
             .select()
             .single();
 
-        let { data, error } = await tryInsert(payload);
-
-        if (
-            error?.code === 'PGRST204' &&
-            error?.message?.includes("'quantidade_estoque'") &&
-            Object.prototype.hasOwnProperty.call(payload, 'quantidade_estoque')
-        ) {
-            payload.quantidade = payload.quantidade_estoque;
-            delete payload.quantidade_estoque;
-            ({ data, error } = await tryInsert(payload));
-        }
-
         if (error) throw error;
 
-        return data;
+        const estoquePayload = {
+            peca_id: createdPeca.id,
+            quantidade,
+            quantidade_minima: quantidadeMinima,
+            localizacao: peca.localizacao || null,
+            observacoes: peca.observacoes || null
+        };
+
+        const { error: estoqueError } = await this.supabase
+            .from('estoque')
+            .insert(estoquePayload);
+
+        if (estoqueError) throw estoqueError;
+
+        return this.normalizePecaRecord({
+            ...createdPeca,
+            quantidade,
+            quantidade_minima: quantidadeMinima,
+            estoque: estoquePayload
+        });
     }
 
     async updatePeca(id, updates = {}) {
 
-        const payloadBase = {
+        const quantidade = Object.prototype.hasOwnProperty.call(updates, 'quantidade')
+            ? Number(updates.quantidade)
+            : null;
+
+        const quantidadeMinima = Object.prototype.hasOwnProperty.call(updates, 'quantidade_minima')
+            ? Number(updates.quantidade_minima)
+            : null;
+
+        const pecaPayload = {
             ...updates,
             atualizado_em: new Date().toISOString()
         };
 
-        const tryUpdate = async (dataToUpdate) => this.supabase
+        delete pecaPayload.quantidade;
+        delete pecaPayload.quantidade_minima;
+
+        const { data: updatedPeca, error } = await this.supabase
             .from('pecas')
-            .update(dataToUpdate)
+            .update(pecaPayload)
             .eq('id', id)
             .select()
             .single();
 
-        let payload = { ...payloadBase };
-        let { data, error } = await tryUpdate(payload);
-
-        if (
-            error?.code === 'PGRST204' &&
-            error?.message?.includes("'quantidade_estoque'") &&
-            Object.prototype.hasOwnProperty.call(payload, 'quantidade_estoque')
-        ) {
-            payload.quantidade = payload.quantidade_estoque;
-            delete payload.quantidade_estoque;
-            ({ data, error } = await tryUpdate(payload));
-        }
-
         if (error) throw error;
 
-        return data;
+        if (quantidade !== null || quantidadeMinima !== null) {
+
+            const { data: estoqueAtual, error: estoqueReadError } = await this.supabase
+                .from('estoque')
+                .select('*')
+                .eq('peca_id', id)
+                .maybeSingle();
+
+            if (estoqueReadError) throw estoqueReadError;
+
+            const estoquePayload = {
+                quantidade: quantidade ?? Number(estoqueAtual?.quantidade ?? 0),
+                quantidade_minima: quantidadeMinima ?? Number(estoqueAtual?.quantidade_minima ?? 5),
+                localizacao: updates.localizacao ?? estoqueAtual?.localizacao ?? null,
+                observacoes: updates.observacoes ?? estoqueAtual?.observacoes ?? null,
+                atualizado_em: new Date().toISOString()
+            };
+
+            if (estoqueAtual) {
+                await this.supabase
+                    .from('estoque')
+                    .update(estoquePayload)
+                    .eq('peca_id', id);
+            } else {
+                await this.supabase
+                    .from('estoque')
+                    .insert({
+                        peca_id: id,
+                        ...estoquePayload
+                    });
+            }
+
+            return this.normalizePecaRecord({
+                ...updatedPeca,
+                quantidade: estoquePayload.quantidade,
+                quantidade_minima: estoquePayload.quantidade_minima,
+                estoque: { ...estoqueAtual, ...estoquePayload, peca_id: id }
+            });
+        }
+
+        return this.normalizePecaRecord(updatedPeca);
     }
 
     async deletePeca(id) {
+
+        const { error: estoqueError } = await this.supabase
+            .from('estoque')
+            .delete()
+            .eq('peca_id', id);
+
+        if (estoqueError) throw estoqueError;
 
         const { error } = await this.supabase
             .from('pecas')

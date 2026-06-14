@@ -8,13 +8,14 @@ let allPecas = [];
 
 function getPecaQuantidade(peca) {
 
-    if (typeof peca?.quantidade_estoque === 'number')
-        return peca.quantidade_estoque;
+    const fromEstoque = Number(
+        peca?.estoque?.quantidade ??
+        peca?.quantidade_estoque ??
+        peca?.quantidade ??
+        0
+    );
 
-    if (typeof peca?.quantidade === 'number')
-        return peca.quantidade;
-
-    return parseInt(peca?.quantidade_estoque ?? peca?.quantidade ?? 0, 10) || 0;
+    return Number.isFinite(fromEstoque) ? fromEstoque : 0;
 
 }
 
@@ -77,7 +78,8 @@ function renderPartsTable(pecas) {
     pecas.forEach(peca => {
 
         const quantidade = getPecaQuantidade(peca);
-        const totalValue = quantidade * peca.valor_compra;
+        const valorCompra = Number(peca.valor_compra || 0);
+        const totalValue = quantidade * valorCompra;
 
         const row = document.createElement('tr');
 
@@ -85,8 +87,8 @@ function renderPartsTable(pecas) {
             <td>${peca.nome}</td>
             <td>${peca.codigo || 'N/A'}</td>
             <td>${quantidade}</td>
-            <td>${formatCurrency(peca.valor_compra)}</td>
-            <td>${formatCurrency(peca.valor_venda)}</td>
+            <td>${formatCurrency(valorCompra)}</td>
+            <td>${formatCurrency(Number(peca.valor_venda || 0))}</td>
             <td>${formatCurrency(totalValue)}</td>
             <td>
                 <button class="btn btn-small btn-primary"
@@ -171,13 +173,9 @@ function setupEventListeners() {
 
         deletePartBtn.addEventListener('click', () => {
 
-            if (confirm('Tem certeza que deseja deletar esta peça?')) {
+            deletePeca(currentPartId);
 
-                deletePeca(currentPartId);
-
-                closeModal();
-
-            }
+            closeModal();
 
         });
 
@@ -352,13 +350,13 @@ async function viewPartDetails(pecaId) {
 
         currentPartId = pecaId;
 
-        const totalValue =
-            getPecaQuantidade(peca) * peca.valor_compra;
+        const valorCompra = Number(peca.valor_compra || 0);
+        const valorVenda = Number(peca.valor_venda || 0);
+        const totalValue = getPecaQuantidade(peca) * valorCompra;
 
         const margin =
-            peca.valor_compra > 0
-                ? ((peca.valor_venda - peca.valor_compra)
-                    / peca.valor_compra) * 100
+            valorCompra > 0
+                ? ((valorVenda - valorCompra) / valorCompra) * 100
                 : 0;
 
         document.getElementById('detailsTitle').textContent =
@@ -377,10 +375,10 @@ async function viewPartDetails(pecaId) {
             peca.quantidade_minima || 'N/A';
 
         document.getElementById('detailCostPrice').textContent =
-            formatCurrency(peca.valor_compra);
+            formatCurrency(valorCompra);
 
         document.getElementById('detailSalePrice').textContent =
-            formatCurrency(peca.valor_venda);
+            formatCurrency(valorVenda);
 
         document.getElementById('detailMargin').textContent =
             margin.toFixed(2) + '%';

@@ -355,8 +355,8 @@ async function viewPartDetails(pecaId) {
         const totalValue = getPecaQuantidade(peca) * valorCompra;
 
         const margin =
-            valorCompra > 0
-                ? ((valorVenda - valorCompra) / valorCompra) * 100
+            valorVenda > 0
+                ? ((valorVenda - valorCompra) / valorVenda) * 100
                 : 0;
 
         document.getElementById('detailsTitle').textContent =

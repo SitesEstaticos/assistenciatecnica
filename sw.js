@@ -141,6 +141,8 @@ self.addEventListener('message', (event) => {
         self.skipWaiting();
     }
 
+    
 });
+
 
 console.log('Service Worker ativo');

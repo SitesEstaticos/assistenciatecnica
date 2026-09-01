@@ -9,6 +9,7 @@
 }
 
 :root {
+
     --primary-color:#045573;
     --primary-light: #4ECDC4;
     --primary-dark: #02818b;
@@ -1214,7 +1215,7 @@ body.menu-open {
    PRINT STYLES
    ============================================ */
 
-@media print {
+   @media print {
 
     .sidebar,
     .top-bar,

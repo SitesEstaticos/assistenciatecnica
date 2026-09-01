@@ -5,9 +5,7 @@
 let currentPartId = null;
 let allPecas = [];
 
-
 function getPecaQuantidade(peca) {
-
     const fromEstoque = Number(
         peca?.estoque?.quantidade ??
         peca?.quantidade_estoque ??
@@ -16,70 +14,50 @@ function getPecaQuantidade(peca) {
     );
 
     return Number.isFinite(fromEstoque) ? fromEstoque : 0;
-
 }
 
-
 async function initEstoquePage() {
-
     try {
-
         Logger.log('Initializing estoque page');
-
         await loadPecas();
-
         setupEventListeners();
-
         updateStockStatistics();
-
     } catch (error) {
-
         Logger.error('Error initializing estoque page', error);
-
     }
-
 }
 
 async function loadPecas() {
-
     try {
-
         allPecas = await db.getPecas();
-
         renderPartsTable(allPecas);
-
         Logger.log('Peças loaded:', allPecas.length);
-
         updateStockStatistics();
-
     } catch (error) {
-
         Logger.error('Error loading peças', error);
-
     }
-
 }
 
 function renderPartsTable(pecas) {
-
     const tableBody = document.getElementById('partsTable');
-
     tableBody.innerHTML = '';
 
     if (!pecas || pecas.length === 0) {
-
         tableBody.innerHTML =
             '<tr><td colspan="7" class="text-center">Nenhuma peça registrada</td></tr>';
-
         return;
-
     }
 
     pecas.forEach(peca => {
-
         const quantidade = getPecaQuantidade(peca);
         const valorCompra = Number(peca.valor_compra || 0);
-        const totalValue = quantidade * valorCompra;
+        const valorVenda = Number(peca.valor_venda || 0);
+
+        // Custo total imobilizado nesta peça (Patrimônio)
+        const totalCusto = quantidade * valorCompra;
+        
+        // Faturamento potencial total caso venda todo o estoque desta peça
+        const totalVenda = quantidade * valorVenda;
 
         const row = document.createElement('tr');
 
@@ -88,8 +66,8 @@ function renderPartsTable(pecas) {
             <td>${peca.codigo || 'N/A'}</td>
             <td>${quantidade}</td>
             <td>${formatCurrency(valorCompra)}</td>
-            <td>${formatCurrency(Number(peca.valor_venda || 0))}</td>
-            <td>${formatCurrency(totalValue)}</td>
+            <td>${formatCurrency(valorVenda)}</td>
+            <td>${formatCurrency(totalCusto)}</td>
             <td>
                 <button class="btn btn-small btn-primary"
                     onclick="viewPartDetails('${peca.id}')">
@@ -104,154 +82,118 @@ function renderPartsTable(pecas) {
         `;
 
         tableBody.appendChild(row);
-
     });
-
 }
 
 function setupEventListeners() {
-
     const newPartBtn = document.getElementById('newPartBtn');
-
     if (newPartBtn)
         newPartBtn.addEventListener('click', openNewPartModal);
 
     const searchInput = document.getElementById('searchParts');
-
     if (searchInput) {
-
         searchInput.addEventListener('input', e => {
-
             const term = e.target.value.toLowerCase();
-
             const filtered = allPecas.filter(p =>
-
                 p.nome.toLowerCase().includes(term) ||
                 (p.codigo && p.codigo.toLowerCase().includes(term))
-
             );
-
             renderPartsTable(filtered);
-
         });
-
     }
 
     ['closePartModal', 'cancelPartBtn', 'closeDetailsModal', 'closeDetailsBtn']
         .forEach(id => {
-
             const elem = document.getElementById(id);
-
             if (elem)
                 elem.addEventListener('click', closeModal);
-
         });
 
     const partForm = document.getElementById('partForm');
-
     if (partForm)
         partForm.addEventListener('submit', savePeca);
 
     const editPartBtn = document.getElementById('editPartBtn');
-
     if (editPartBtn) {
-
         editPartBtn.addEventListener('click', () => {
-
             document.getElementById('partDetailsModal')
                 .classList.add('hidden');
-
             openEditPartModal(currentPartId);
-
         });
-
     }
 
     const deletePartBtn = document.getElementById('deletePartBtn');
-
     if (deletePartBtn) {
-
         deletePartBtn.addEventListener('click', () => {
-
             deletePeca(currentPartId);
-
             closeModal();
-
         });
-
     }
-
 }
 
 function updateStockStatistics() {
-
     const totalParts = allPecas.length;
 
     const lowStockParts = allPecas.filter(p =>
         getPecaQuantidade(p) <= (p.quantidade_minima || 5)
     ).length;
 
-    const totalValue = allPecas.reduce((sum, p) =>
-        sum + (getPecaQuantidade(p) * p.valor_compra)
-        , 0);
+    // Custo Total do Estoque (Custo de Aquisição/Patrimônio)
+    const totalCostValue = allPecas.reduce((sum, p) =>
+        sum + (getPecaQuantidade(p) * Number(p.valor_compra || 0))
+    , 0);
+
+    // Valor Potencial de Venda Total do Estoque
+    const totalSaleValue = allPecas.reduce((sum, p) =>
+        sum + (getPecaQuantidade(p) * Number(p.valor_venda || 0))
+    , 0);
 
     document.getElementById('totalParts').textContent = totalParts;
-
     document.getElementById('lowStock').textContent = lowStockParts;
 
-    document.getElementById('totalValue').textContent =
-        formatCurrency(totalValue);
+    // Atualiza o elemento de valor total de custo
+    const totalValElem = document.getElementById('totalValue');
+    if (totalValElem) {
+        totalValElem.textContent = formatCurrency(totalCostValue);
+    }
 
+    // Se no seu HTML existir um elemento para o valor potencial de venda
+    const totalSaleElem = document.getElementById('totalSaleValue');
+    if (totalSaleElem) {
+        totalSaleElem.textContent = formatCurrency(totalSaleValue);
+    }
 }
 
 function openNewPartModal() {
-
     currentPartId = null;
-
     document.getElementById('partId').value = '';
-
     document.getElementById('partForm').reset();
-
     document.getElementById('modalTitle').textContent = 'Nova Peça';
-
     document.getElementById('partModal').classList.remove('hidden');
-
 }
 
 function openEditPartModal(pecaId) {
-
     currentPartId = pecaId;
 
     const peca = allPecas.find(p => p.id === pecaId);
-
     if (!peca)
         return alert('Peça não encontrada.');
 
     document.getElementById('partId').value = peca.id;
-
     document.getElementById('partName').value = peca.nome;
-
     document.getElementById('partCode').value = peca.codigo || '';
-
     document.getElementById('partQuantity').value = getPecaQuantidade(peca);
-
     document.getElementById('partMinQuantity').value =
         peca.quantidade_minima || '';
-
     document.getElementById('partCostPrice').value = peca.valor_compra;
-
     document.getElementById('partSalePrice').value = peca.valor_venda;
-
     document.getElementById('partDescription').value = peca.descricao || '';
 
     document.getElementById('modalTitle').textContent = 'Editar Peça';
-
     document.getElementById('partModal').classList.remove('hidden');
-
 }
 
 async function savePeca(e) {
-
     e.preventDefault();
 
     const pecaId = document.getElementById('partId').value;
@@ -262,87 +204,55 @@ async function savePeca(e) {
     ) || 0;
 
     const pecaData = {
-
         nome: document.getElementById('partName').value,
-
         codigo: document.getElementById('partCode').value,
-
         quantidade: quantidade,
-
         quantidade_minima: parseInt(
             document.getElementById('partMinQuantity').value,
             10
         ) || 5,
-
         valor_compra: parseFloat(
             document.getElementById('partCostPrice').value
-        ),
-
+        ) || 0,
         valor_venda: parseFloat(
             document.getElementById('partSalePrice').value
-        ),
-
+        ) || 0,
         descricao: document.getElementById('partDescription').value
-
     };
 
     try {
-
         if (pecaId) {
-
             await db.updatePeca(pecaId, pecaData);
-
             alert('Peça atualizada com sucesso!');
-
         } else {
-
             await db.createPeca(pecaData);
-
             alert('Peça criada com sucesso!');
-
         }
 
         closeModal();
-
         await loadPecas();
-
     } catch (error) {
-
         Logger.error('Error saving peça', error);
-
         alert('Erro ao salvar peça: ' + error.message);
-
     }
-
 }
 
 async function deletePeca(pecaId) {
-
     if (!confirm('Tem certeza que deseja deletar esta peça?'))
         return;
 
     try {
-
         await db.deletePeca(pecaId);
-
         alert('Peça deletada com sucesso!');
-
         await loadPecas();
-
     } catch (error) {
-
         Logger.error('Error deleting peça', error);
-
         alert('Erro ao deletar peça: ' + error.message);
-
     }
-
 }
 
 async function viewPartDetails(pecaId) {
-
     try {
-
         const peca = await db.getPecaById(pecaId);
 
         if (!peca)
@@ -352,8 +262,12 @@ async function viewPartDetails(pecaId) {
 
         const valorCompra = Number(peca.valor_compra || 0);
         const valorVenda = Number(peca.valor_venda || 0);
-        const totalValue = getPecaQuantidade(peca) * valorCompra;
+        const quantidade = getPecaQuantidade(peca);
+        
+        const totalCusto = quantidade * valorCompra;
+        const totalVenda = quantidade * valorVenda;
 
+        // MARGEM DE LUCRO SOBRE A VENDA (%)
         const margin =
             valorVenda > 0
                 ? ((valorVenda - valorCompra) / valorVenda) * 100
@@ -362,62 +276,44 @@ async function viewPartDetails(pecaId) {
         document.getElementById('detailsTitle').textContent =
             `Detalhes da Peça - ${peca.nome}`;
 
-        document.getElementById('detailName').textContent =
-            peca.nome;
+        document.getElementById('detailName').textContent = peca.nome;
+        document.getElementById('detailCode').textContent = peca.codigo || 'N/A';
+        document.getElementById('detailQuantity').textContent = quantidade;
+        document.getElementById('detailMinQuantity').textContent = peca.quantidade_minima || 'N/A';
+        document.getElementById('detailCostPrice').textContent = formatCurrency(valorCompra);
+        document.getElementById('detailSalePrice').textContent = formatCurrency(valorVenda);
+        document.getElementById('detailMargin').textContent = margin.toFixed(2) + '%';
+        
+        // Exibe o Valor de Custo do Estoque
+        document.getElementById('detailTotalValue').textContent = formatCurrency(totalCusto);
+        
+        // Se existir no HTML um campo para exibir o Valor Potencial de Venda
+        const detailTotalSale = document.getElementById('detailTotalSaleValue');
+        if (detailTotalSale) {
+            detailTotalSale.textContent = formatCurrency(totalVenda);
+        }
 
-        document.getElementById('detailCode').textContent =
-            peca.codigo || 'N/A';
-
-        document.getElementById('detailQuantity').textContent =
-            getPecaQuantidade(peca);
-
-        document.getElementById('detailMinQuantity').textContent =
-            peca.quantidade_minima || 'N/A';
-
-        document.getElementById('detailCostPrice').textContent =
-            formatCurrency(valorCompra);
-
-        document.getElementById('detailSalePrice').textContent =
-            formatCurrency(valorVenda);
-
-        document.getElementById('detailMargin').textContent =
-            margin.toFixed(2) + '%';
-
-        document.getElementById('detailTotalValue').textContent =
-            formatCurrency(totalValue);
-
-        document.getElementById('detailDescription').textContent =
-            peca.descricao || 'N/A';
+        document.getElementById('detailDescription').textContent = peca.descricao || 'N/A';
 
         document.getElementById('partDetailsModal')
             .classList.remove('hidden');
 
     } catch (error) {
-
         Logger.error('Error loading part details', error);
-
         alert('Erro ao carregar detalhes da peça: ' + error.message);
-
     }
-
 }
 
 function closeModal() {
-
     document.getElementById('partModal')
         .classList.add('hidden');
 
     document.getElementById('partDetailsModal')
         .classList.add('hidden');
-
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-
     if (document.getElementById('partsTable')) {
-
         initEstoquePage();
-
     }
-
 });

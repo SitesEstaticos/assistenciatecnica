@@ -15,8 +15,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="logo-small">AT</div>
-                <h2>Assistência</h2>
+                <div class="logo"><img src="./images/logo com fundo M³.png" alt="logo m³ Technology"></div>
             </div>
             <nav class="sidebar-nav">
                 <a href="dashboard.html" class="nav-item" data-page="dashboard">
@@ -56,6 +55,7 @@
         <main class="main-content">
             <header class="top-bar">
                 <div class="top-bar-left">
+                    <button id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Abrir menu" aria-expanded="false">☰</button>
                     <h1>Ordens de Serviço</h1>
                 </div>
                 <div class="top-bar-right">
@@ -91,7 +91,7 @@
                                 <th>Equipamento</th>
                                 <th>Status</th>
                                 <th>Data</th>
-                                <th>Valor</th>
+                                <th>Valor Total</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -167,7 +167,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="orderValue">Valor do Serviço (R$)</label>
+                    <label for="orderValue">Valor Mão de Obra (R$)</label>
                     <input type="number" id="orderValue" name="service_value" placeholder="0.00" step="0.01">
                 </div>
 
@@ -175,7 +175,6 @@
                     <label for="orderTechnician">Técnico Responsável</label>
                     <input type="text" id="orderTechnician" name="technician_responsible" placeholder="Nome do técnico">
                 </div>
-
 
                 <div class="form-group full-width">
                     <label>Peças para Reparo</label>
@@ -280,8 +279,8 @@
                         <p id="detailServices"></p>
                     </div>
                     <div class="detail-item">
-                        <label>Valor do Serviço</label>
-                        <p id="detailValue"></p>
+                        <label>Valor Total da OS (Mão de Obra + Peças)</label>
+                        <p id="detailValue" class="text-bold"></p>
                     </div>
                 </div>
 
@@ -324,6 +323,7 @@
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <!-- Biblioteca PDF -->

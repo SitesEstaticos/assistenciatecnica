@@ -91,8 +91,6 @@ CREATE TABLE IF NOT EXISTS pecas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nome VARCHAR(255) NOT NULL,
     codigo VARCHAR(100) UNIQUE,
-    quantidade INTEGER NOT NULL DEFAULT 0,
-    quantidade_minima INTEGER DEFAULT 5,
     valor_compra DECIMAL(10, 2) NOT NULL,
     valor_venda DECIMAL(10, 2) NOT NULL,
     descricao TEXT,
@@ -136,6 +134,7 @@ CREATE TABLE IF NOT EXISTS estoque (
 
 -- Índices para estoque
 CREATE INDEX idx_estoque_peca_id ON estoque(peca_id);
+CREATE UNIQUE INDEX idx_estoque_peca_unica ON estoque(peca_id);
 
 -- ============================================
 -- TABELA: imagens_equipamento
@@ -248,14 +247,14 @@ SELECT
     p.id,
     p.nome,
     p.codigo,
-    e.quantidade,
-    p.quantidade_minima,
+    COALESCE(e.quantidade, 0) AS quantidade,
+    COALESCE(e.quantidade_minima, 5) AS quantidade_minima,
     p.valor_compra,
     p.valor_venda
 FROM pecas p
 LEFT JOIN estoque e ON p.id = e.peca_id
-WHERE e.quantidade <= p.quantidade_minima
-ORDER BY e.quantidade ASC;
+WHERE COALESCE(e.quantidade, 0) <= COALESCE(e.quantidade_minima, 5)
+ORDER BY COALESCE(e.quantidade, 0) ASC;
 
 -- ============================================
 -- TRIGGERS
@@ -324,15 +323,21 @@ FROM clientes WHERE nome = 'João Silva'
 ON CONFLICT (numero_serie) DO NOTHING;
 
 -- Inserir peça de exemplo
-INSERT INTO pecas (nome, codigo, quantidade, quantidade_minima, valor_compra, valor_venda)
+INSERT INTO pecas (nome, codigo, valor_compra, valor_venda)
 VALUES (
     'Bateria Notebook',
     'BAT-001',
-    10,
-    5,
     150.00,
     250.00
 ) ON CONFLICT (codigo) DO NOTHING;
+
+INSERT INTO estoque (peca_id, quantidade, quantidade_minima)
+SELECT id, 10, 5
+FROM pecas
+WHERE codigo = 'BAT-001'
+ON CONFLICT (peca_id) DO UPDATE
+SET quantidade = EXCLUDED.quantidade,
+    quantidade_minima = EXCLUDED.quantidade_minima;
 
 -- ============================================
 -- COMENTÁRIOS ÚTEIS

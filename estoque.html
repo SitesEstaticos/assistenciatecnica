@@ -12,11 +12,9 @@
 
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo-small">AT</div>
-                <h2>Assistência</h2>
+             <div class="sidebar-header">
+                <div class="logo"><img src="./images/logo com fundo M³.png" alt="logo m³ Technology"></div>
             </div>
             <nav class="sidebar-nav">
                 <a href="dashboard.html" class="nav-item" data-page="dashboard">
@@ -52,10 +50,10 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
             <header class="top-bar">
                 <div class="top-bar-left">
+                    <button id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Abrir menu" aria-expanded="false">☰</button>
                     <h1>Estoque de Peças</h1>
                 </div>
                 <div class="top-bar-right">
@@ -66,12 +64,10 @@
             </header>
 
             <div class="content-wrapper">
-                <!-- Search and Filter -->
                 <div class="search-bar">
                     <input type="text" id="searchParts" placeholder="Buscar por nome ou código..." class="search-input">
                 </div>
 
-                <!-- Stock Summary -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon" style="background: #dbeafe;">
@@ -98,13 +94,22 @@
                             <span>💰</span>
                         </div>
                         <div class="stat-content">
-                            <h3>Valor Total</h3>
+                            <h3>Custo do Estoque</h3>
                             <p class="stat-number" id="totalValue">R$ 0,00</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #e0e7ff;">
+                            <span>🏷️</span>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Venda Potencial</h3>
+                            <p class="stat-number" id="totalSaleValue">R$ 0,00</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Parts Table -->
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
@@ -114,7 +119,7 @@
                                 <th>Quantidade</th>
                                 <th>Valor Compra</th>
                                 <th>Valor Venda</th>
-                                <th>Total em Estoque</th>
+                                <th>Custo Total</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -129,7 +134,6 @@
         </main>
     </div>
 
-    <!-- Modal: New/Edit Part -->
     <div id="partModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -184,7 +188,6 @@
         </div>
     </div>
 
-    <!-- Modal: Part Details -->
     <div id="partDetailsModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -223,8 +226,12 @@
                         <p id="detailMargin"></p>
                     </div>
                     <div class="detail-item">
-                        <label>Valor Total em Estoque</label>
+                        <label>Custo Total em Estoque</label>
                         <p id="detailTotalValue"></p>
+                    </div>
+                    <div class="detail-item">
+                        <label>Venda Total Potencial</label>
+                        <p id="detailTotalSaleValue"></p>
                     </div>
                     <div class="detail-item full-width">
                         <label>Descrição</label>
@@ -241,11 +248,6 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
-    <script src="js/config.js"></script> <!-- Logger e configurações -->
-    <script src="js/auth.js"></script> <!-- depende de config -->
-    <script src="js/db.js"></script> <!-- depende de supabase -->
-    <script src="js/app.js"></script> <!-- inicialização global -->
-    <script src="js/estoque.js"></script> <!-- lógica da página -->
-</body>
+    <script src="js/config.js"></script> <script src="js/auth.js"></script> <script src="js/db.js"></script> <script src="js/app.js"></script> <script src="js/estoque.js"></script> </body>
 
 </html>

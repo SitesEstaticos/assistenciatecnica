@@ -12,11 +12,9 @@
 
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="logo-small">AT</div>
-                <h2>Assistência</h2>
+                <div class="logo"><img src="./images/logo com fundo M³.png" alt="logo m³ Technology"></div>
             </div>
             <nav class="sidebar-nav">
                 <a href="dashboard.html" class="nav-item" data-page="dashboard">
@@ -52,10 +50,10 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
             <header class="top-bar">
                 <div class="top-bar-left">
+                    <button id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Abrir menu" aria-expanded="false">☰</button>
                     <h1>Equipamentos</h1>
                 </div>
                 <div class="top-bar-right">
@@ -66,28 +64,27 @@
             </header>
 
             <div class="content-wrapper">
-                <!-- Search -->
                 <div class="search-bar">
-                    <input type="text" id="searchEquipments" placeholder="Buscar por cliente, marca ou modelo..."
+                    <input type="text" id="searchEquipments" placeholder="Buscar por cliente, tipo, marca, modelo, série ou MAC..."
                         class="search-input">
                 </div>
 
-                <!-- Table -->
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>Cliente</th>
+                                <th>Tipo</th>
                                 <th>Marca</th>
                                 <th>Modelo</th>
-                                <th>Número de Série</th>
+                                <th>Série / MAC</th>
                                 <th>Estado</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="equipmentsTable">
                             <tr>
-                                <td colspan="6" class="text-center">Carregando...</td>
+                                <td colspan="7" class="text-center">Carregando...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -96,7 +93,6 @@
         </main>
     </div>
 
-    <!-- Modal: New/Edit Equipment -->
     <div id="equipmentModal" class="modal hidden">
         <div class="modal-content modal-large">
 
@@ -117,26 +113,41 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="equipmentBrand">Marca *</label>
-                    <input type="text" id="equipmentBrand" name="brand" placeholder="Ex: Dell, HP, Lenovo" required>
+                    <label for="equipmentType">Tipo / Categoria *</label>
+                    <select id="equipmentType" name="type" required>
+                        <option value="Notebook">Notebook</option>
+                        <option value="Desktop">Desktop / Computador</option>
+                        <option value="Impressora">Impressora</option>
+                        <option value="Câmera/DVR">Câmera / DVR / NVR</option>
+                        <option value="Roteador/Switch">Roteador / Switch</option>
+                        <option value="Smartphone/Tablet">Smartphone / Tablet</option>
+                        <option value="Outros">Outros</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="equipmentModel">Modelo *</label>
-                    <input type="text" id="equipmentModel" name="model" placeholder="Ex: Inspiron 15, Pavilion G6"
-                        required>
+                    <label for="equipmentBrand">Marca</label>
+                    <input type="text" id="equipmentBrand" name="brand" placeholder="Ex: Dell, Intelbras, HP">
                 </div>
 
                 <div class="form-group">
-                    <label for="equipmentSerial">Número de Série *</label>
-                    <input type="text" id="equipmentSerial" name="serial_number"
-                        placeholder="Número único do equipamento" required>
+                    <label for="equipmentModel">Modelo</label>
+                    <input type="text" id="equipmentModel" name="model" placeholder="Ex: Inspiron 15, MHDX 1116">
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentSerial">Número de Série</label>
+                    <input type="text" id="equipmentSerial" name="serial_number" placeholder="Número único / Serial">
+                </div>
+
+                <div class="form-group">
+                    <label for="equipmentMac">Endereço MAC</label>
+                    <input type="text" id="equipmentMac" name="mac_address" placeholder="Ex: AA:BB:CC:DD:EE:FF">
                 </div>
 
                 <div class="form-group">
                     <label for="equipmentAccessories">Acessórios Entregues</label>
-                    <input type="text" id="equipmentAccessories" name="accessories"
-                        placeholder="Ex: Carregador, Mouse, Mochila">
+                    <input type="text" id="equipmentAccessories" name="accessories" placeholder="Ex: Carregador, Cabo HDMI, Fonte">
                 </div>
 
                 <div class="form-group">
@@ -152,32 +163,25 @@
 
                 <div class="form-group">
                     <label for="equipmentPassword">Senha do Equipamento</label>
-                    <input type="password" id="equipmentPassword" name="password"
-                        placeholder="Senha BIOS/Windows/Admin">
+                    <input type="password" id="equipmentPassword" name="password" placeholder="Senha BIOS/Windows/Admin">
                 </div>
 
                 <div class="form-group full-width">
                     <label for="equipmentNotes">Observações</label>
-                    <textarea id="equipmentNotes" name="notes" placeholder="Observações adicionais sobre o equipamento"
-                        rows="3"></textarea>
+                    <textarea id="equipmentNotes" name="notes" placeholder="Observações adicionais sobre o equipamento" rows="3"></textarea>
                 </div>
 
-                <!-- Upload de imagens -->
                 <div class="form-group full-width">
                     <label for="equipmentImages">Imagens do Equipamento</label>
 
                     <div class="image-upload-area">
-
                         <input type="file" id="equipmentImages" name="images" multiple accept="image/*" class="hidden">
 
                         <button type="button" class="btn btn-secondary" id="uploadImagesBtn">
-
                             📷 Selecionar Imagens
-
                         </button>
 
                         <div id="imagePreview" class="image-preview-grid"></div>
-
                     </div>
                 </div>
 
@@ -195,7 +199,6 @@
         </div>
     </div>
 
-    <!-- Modal: Equipment Details -->
     <div id="equipmentDetailsModal" class="modal hidden">
         <div class="modal-content modal-large">
 
@@ -214,6 +217,11 @@
                     </div>
 
                     <div class="detail-item">
+                        <label>Tipo</label>
+                        <p id="detailType"></p>
+                    </div>
+
+                    <div class="detail-item">
                         <label>Marca</label>
                         <p id="detailBrand"></p>
                     </div>
@@ -226,6 +234,11 @@
                     <div class="detail-item">
                         <label>Número de Série</label>
                         <p id="detailSerial"></p>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>Endereço MAC</label>
+                        <p id="detailMac"></p>
                     </div>
 
                     <div class="detail-item">

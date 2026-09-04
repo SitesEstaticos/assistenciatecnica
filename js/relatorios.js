@@ -488,11 +488,13 @@ async function exportReports() {
 
     } catch (error) {
 
+
         alert(
             'Erro ao exportar relatório: ' +
             error.message
         );
 
+        
         Logger.error(
             'Error exporting report',
             error

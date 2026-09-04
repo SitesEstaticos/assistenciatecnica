@@ -225,10 +225,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
 
-        await auth.ready;
+        await window.auth.ready;
 
-        if (!auth.isLoggedIn()) {
-            window.location.href = "login.html";
+        if (!window.auth.isLoggedIn()) {
+            window.location.href = "index.html";
             return;
         }
 
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 function loadUserProfile() {
 
-    const user = auth.getUser();
+    const user = window.auth.getUser();
 
     if (!user) return;
 

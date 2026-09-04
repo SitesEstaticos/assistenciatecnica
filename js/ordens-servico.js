@@ -887,7 +887,7 @@ async function syncOrderImages(ordemId, equipamentoId) {
             url_imagem: img.url,
             tipo_imagem: 'ordem_servico',
             descricao_tecnica: 'Imagem da ordem de serviço',
-            tecnico_responsavel: auth.getUserEmail()
+            tecnico_responsavel: window.auth.getUserEmail()
         });
     }
 }

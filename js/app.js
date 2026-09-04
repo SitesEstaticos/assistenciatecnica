@@ -72,7 +72,7 @@ function setupLogoutButton() {
 
         try {
 
-            await auth.logout();
+            await window.auth.logout();
 
             showNotification('Logout realizado com sucesso', 'success');
 
@@ -163,12 +163,16 @@ function handleLoginForm() {
             if (spinner) spinner.classList.remove("hidden");
             if (buttonText) buttonText.textContent = "Entrando...";
 
-            await auth.login(email, password);
+            if (!window.auth || typeof window.auth.login !== "function") {
+                throw new Error("Autenticação indisponível. Atualize a página e tente novamente.");
+            }
+
+            await window.auth.login(email, password);
 
             // Esperar sincronização da sessão
             await new Promise(resolve => setTimeout(resolve, 300));
 
-            if (auth.isLoggedIn()) {
+            if (window.auth.isLoggedIn()) {
 
                 showNotification("Login realizado com sucesso", "success");
 

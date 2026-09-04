@@ -453,7 +453,7 @@ async function saveEquipamento(e) {
                 url_imagem: img.url,
                 tipo_imagem: 'recebimento',
                 descricao_tecnica: 'Imagem do equipamento',
-                tecnico_responsavel: auth.getUserEmail()
+                tecnico_responsavel: window.auth.getUserEmail()
             });
         }
 

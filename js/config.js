@@ -7,13 +7,13 @@
 // SUPABASE CONFIGURATION
 // =====================
 const SUPABASE_CONFIG = {
-    URL: 'https://cdmhzakqcgkmbjlqnosb.supabase.co',
-    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWh6YWtxY2drbWJqbHFub3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTkwMTcsImV4cCI6MjA4ODQzNTAxN30.AeoFUK5sUiKXRpflTlHOw5_3r71A9MSn-q60iYzyjG8',
+    URL: import.meta.env.VITE_SUPABASE_URL,
+    ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
 };
 
 const CLOUDINARY_CONFIG = {
-    CLOUD_NAME: 'ddbtzkw3a',
-    UPLOAD_PRESET: 'assistenciatecnica',
+    CLOUD_NAME: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
+    UPLOAD_PRESET: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET,
 };
 
 
@@ -291,11 +291,9 @@ window.Logger = Logger;
 // =====================
 
 if (!window.supabase || !window.supabase.createClient) {
-    throw new Error('Biblioteca Supabase não carregada. Verifique o script CDN.');
-}
 
-if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY || SUPABASE_CONFIG.ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWh6YWtxY2drbWJqbHFub3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NTkwMTcsImV4cCI6MjA4ODQzNTAxN30.AeoFUK5sUiKXRpflTlHOw5_3r71A9MSn-q60iYzyjG8') {
-    throw new Error('Credenciais do Supabase não configuradas.');
+    throw new Error('Biblioteca Supabase não carregada. Verifique o script CDN.');
+
 }
 
 window.supabaseClient = window.supabase.createClient(

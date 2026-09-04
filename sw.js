@@ -2,7 +2,7 @@
 // SERVICE WORKER
 // ============================================
 
-const CACHE_NAME = 'assistencia-tecnica-v4';
+const CACHE_NAME = 'assistencia-tecnica-v3';
 
 // Detecta automaticamente a pasta do projeto
 const BASE_PATH = self.location.pathname.replace('sw.js', '');

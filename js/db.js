@@ -383,9 +383,16 @@ class DatabaseManager {
         const quantidade = Number(peca.quantidade ?? 0);
         const quantidadeMinima = Number(peca.quantidade_minima ?? 5);
 
-        const basePayload = { ...peca };
-        delete basePayload.quantidade;
-        delete basePayload.quantidade_minima;
+        // "quantidade" e "quantidade_minima" pertencem a "estoque", não a
+        // "pecas". Monte explicitamente o payload para evitar que campos da
+        // tela sejam enviados por engano para a tabela de peças.
+        const basePayload = {
+            nome: peca.nome,
+            codigo: peca.codigo || null,
+            valor_compra: Number(peca.valor_compra ?? 0),
+            valor_venda: Number(peca.valor_venda ?? 0),
+            descricao: peca.descricao || null
+        };
 
         const { data: createdPeca, error } = await this.supabase
             .from('pecas')
@@ -427,13 +434,16 @@ class DatabaseManager {
             ? Number(updates.quantidade_minima)
             : null;
 
+        // Nunca repasse os campos de estoque para "pecas". Isso também evita
+        // o erro do cache do Supabase ao procurar a coluna inexistente.
         const pecaPayload = {
-            ...updates,
+            nome: updates.nome,
+            codigo: updates.codigo || null,
+            valor_compra: Number(updates.valor_compra ?? 0),
+            valor_venda: Number(updates.valor_venda ?? 0),
+            descricao: updates.descricao || null,
             atualizado_em: new Date().toISOString()
         };
-
-        delete pecaPayload.quantidade;
-        delete pecaPayload.quantidade_minima;
 
         const { data: updatedPeca, error } = await this.supabase
             .from('pecas')
@@ -463,17 +473,21 @@ class DatabaseManager {
             };
 
             if (estoqueAtual) {
-                await this.supabase
+                const { error: estoqueUpdateError } = await this.supabase
                     .from('estoque')
                     .update(estoquePayload)
                     .eq('peca_id', id);
+
+                if (estoqueUpdateError) throw estoqueUpdateError;
             } else {
-                await this.supabase
+                const { error: estoqueInsertError } = await this.supabase
                     .from('estoque')
                     .insert({
                         peca_id: id,
                         ...estoquePayload
                     });
+
+                if (estoqueInsertError) throw estoqueInsertError;
             }
 
             return this.normalizePecaRecord({

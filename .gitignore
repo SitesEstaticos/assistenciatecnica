@@ -31,15 +31,9 @@
 tmp/
 temp/
 *.tmp
-
 # OS
 Thumbs.db
 .DS_Store
-
 # Cache
 .cache/
 .eslintcache
-
-# Config files with sensitive data
-/config.local.js
-/js/config.js
